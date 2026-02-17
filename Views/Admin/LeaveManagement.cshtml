@@ -1,0 +1,356 @@
+﻿@model List<SquadInternal.Models.EmployeeLeave>
+
+@{
+    ViewData["Title"] = "Leave Management";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+
+    var employees = ViewBag.EmployeeList as List<SquadInternal.Models.Employee>;
+    int? selectedId = ViewBag.SelectedEmployeeId as int?;
+    var adminUserId = Context.Session.GetInt32("UserId");
+}
+
+<div class="page-accent d-flex justify-content-between align-items-center">
+    <h3 class="m-0">Leave Management</h3>
+</div> 
+
+
+<!-- ================= EMPLOYEE FILTER ================= -->
+<div class="card shadow-sm border-0 p-3 mt-3">
+    <form method="get">
+        <div class="row align-items-end">
+            <div class="col-md-4">
+                <label>Select Employee</label>
+                <select name="employeeId" class="form-control">
+                    <option value="">-- All Employees --</option>
+                    @if (employees != null)
+                    {
+                        foreach (var emp in employees)
+                        {
+                            <option value="@emp.Id" selected="@(selectedId == emp.Id)">
+                                @emp.FirstName @emp.LastName
+                            </option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-primary">Filter</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- ================= LEAVE SUMMARY ================= -->
+@if (ViewBag.SelectedEmployeeId != null)
+{
+    <div class="card shadow-sm border-0 p-3 mt-3">
+        <h6>Leave Summary</h6>
+        <div class="row">
+            <div class="col-md-3">
+                <strong>Total:</strong> @ViewBag.TotalLeaves
+            </div>
+            <div class="col-md-3">
+                <span class="badge bg-success">Approved: @ViewBag.ApprovedCount</span>
+            </div>
+            <div class="col-md-3">
+                <span class="badge bg-warning text-dark">Pending: @ViewBag.PendingCount</span>
+            </div>
+            <div class="col-md-3">
+                <span class="badge bg-danger">Rejected: @ViewBag.RejectedCount</span>
+            </div>
+        </div>
+    </div>
+}
+
+<ul class="nav nav-tabs mt-4" role="tablist">
+    <li class="nav-item">
+        <button class="nav-link @(TempData["Error"] != null ? "" : "active")"
+                data-bs-toggle="tab"
+                data-bs-target="#approvals">
+
+            Leave Approvals
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link @(TempData["Error"] != null ? "active" : "")"
+                data-bs-toggle="tab"
+                data-bs-target="#myLeaves">
+
+            My Leaves
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#calendar">
+            Leave Calendar
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content mt-3">
+
+    <!-- ================= APPROVALS TAB ================= -->
+    <div class="tab-pane fade @(TempData["Error"] == null ? "show active" : "")" id="approvals">
+
+        <div class="card shadow-sm border-0">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Employee</th>
+                            <th>Type</th>
+                            <th>From</th>
+                            <th>To</th>
+                            <th>Status</th>
+                            <th style="width:170px;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Any())
+                        {
+                            foreach (var leave in Model)
+                            {
+                                string badgeClass = leave.Status == "Approved" ? "bg-success"
+                                : leave.Status == "Pending" ? "bg-warning text-dark"
+                                : "bg-danger";
+
+                                <tr>
+                                    <td>@leave.Employee?.FirstName @leave.Employee?.LastName</td>
+                                    <td>@leave.LeaveType</td>
+                                    <td>@leave.FromDate.ToString("dd MMM yyyy")</td>
+                                    <td>@leave.ToDate.ToString("dd MMM yyyy")</td>
+                                    <td>
+                                        <span class="badge @badgeClass">
+                                            @leave.Status
+                                        </span>
+                                    </td>
+                                    <td>
+                                        @if (leave.Status == "Pending")
+                                        {
+                                            <form asp-action="ApproveLeave" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@leave.Id" />
+                                                <button class="btn btn-sm btn-success">
+                                                    ✔ 
+                                                </button>
+                                            </form>
+
+                                            <form asp-action="RejectLeave" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@leave.Id" />
+                                                <button class="btn btn-sm btn-danger">
+                                                    ✖ 
+                                                </button>
+                                            </form>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">No Action</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center text-muted">
+                                    No leave requests found.
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div> 
+
+    <!-- ================= MY LEAVES TAB ================= -->
+    <div class="tab-pane fade @(TempData["Error"] != null ? "show active" : "")" id="myLeaves">
+
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="m-0">My Leave History</h5>
+
+            <button class="btn btn-primary"
+                    data-bs-toggle="modal"
+                    data-bs-target="#adminApplyLeaveModal">
+                + Apply Leave
+            </button>
+        </div>
+
+        <div class="card shadow-sm border-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Type</th>
+                            <th>From</th>
+                            <th>To</th>
+                            <th>Status</th>
+                            <th style="width:120px;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{
+                            var myLeaves = Model
+                            .Where(l => l.Employee != null &&
+                            l.Employee.UserId == adminUserId)
+                            .ToList();
+                        }
+
+                        @if (myLeaves.Any())
+                        {
+                            foreach (var leave in myLeaves)
+                            {
+                                string badgeClass = leave.Status == "Approved" ? "bg-success"
+                                : leave.Status == "Pending" ? "bg-warning text-dark"
+                                : "bg-danger";
+
+                                <tr>
+                                    <td>@leave.LeaveType</td>
+                                    <td>@leave.FromDate.ToString("dd MMM yyyy")</td>
+                                    <td>@leave.ToDate.ToString("dd MMM yyyy")</td>
+                                    <td>
+                                        <span class="badge @badgeClass">@leave.Status</span>
+                                    </td>
+                                    <td>
+                                        @if (leave.Status == "Pending")
+                                        {
+                                            <form asp-action="CancelLeave" method="post">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@leave.Id" />
+                                                <button class="btn btn-sm btn-danger">
+                                                    Backout
+                                                </button>
+                                            </form>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center text-muted">
+                                    No leaves applied yet.
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div> 
+
+    <!-- ================= CALENDAR ================= -->
+    <div class="tab-pane fade" id="calendar">
+        <div class="card shadow-sm border-0 p-3">
+            <p class="text-muted">
+                Monthly leave calendar view will be shown here.
+            </p>
+        </div>
+    </div>
+
+</div> 
+
+<!-- ================= ADMIN APPLY LEAVE MODAL ================= -->
+<div class="modal fade" id="adminApplyLeaveModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-action="ApplyAdminLeave" method="post">
+                @Html.AntiForgeryToken()
+
+                <div class="modal-header">
+                    <h5 class="modal-title">Apply Leave</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+
+                    <div class="mb-3">
+                        <label>Leave Type</label>
+                        <select name="LeaveType" class="form-control">
+                            <option>Sick Leave</option>
+                            <option>Casual Leave</option>
+                            <option>Half Day</option>
+                            <option>Paternity Leave</option>
+                            <option>Maternity Leave</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label>From Date</label>
+                        <input type="date" id="fromDate" name="FromDate" class="form-control" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label>To Date</label>
+                        <input type="date" id="toDate" name="ToDate" class="form-control" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label>Reason</label>
+                        <textarea name="Reason" class="form-control" required></textarea>
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-primary">Apply</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@if (TempData["Error"] != null)
+{
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            var myModal = new bootstrap.Modal(document.getElementById('adminApplyLeaveModal'));
+            myModal.show();
+        });
+    </script>
+}
+<script>
+    const blockedDates = [
+        @if (ViewBag.BlockedLeaveDates != null)
+        {
+                foreach (DateTime date in ViewBag.BlockedLeaveDates)
+                {
+                        @:new Date("@date.ToString("yyyy-MM-dd")"),
+                }
+        }
+    ];
+
+    function isBlocked(date) {
+        return blockedDates.some(d =>
+            d.getFullYear() === date.getFullYear() &&
+            d.getMonth() === date.getMonth() &&
+            d.getDate() === date.getDate()
+        );
+    }
+
+    function checkDateSelection() {
+        const fromInput = document.getElementById("fromDate");
+        const toInput = document.getElementById("toDate");
+
+        if (!fromInput.value || !toInput.value) return;
+
+        const fromDate = new Date(fromInput.value);
+        const toDate = new Date(toInput.value);
+
+        for (let d = new Date(fromDate); d <= toDate; d.setDate(d.getDate() + 1)) {
+               if (!data.success) {
+        toastr.error(data.message);
+    } else {
+        toastr.success("Leave applied successfully.");
+        location.reload();
+    }
+
+        }
+    }
+
+    document.getElementById("fromDate").addEventListener("change", checkDateSelection);
+    document.getElementById("toDate").addEventListener("change", checkDateSelection);
+</script>

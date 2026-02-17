@@ -1,0 +1,230 @@
+﻿@using Microsoft.AspNetCore.Http
+
+@{
+    ViewData["Title"] = "Admin Dashboard";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+
+    int? roleId = Context.Session.GetInt32("RoleId");
+    bool isAdmin = roleId == 1;
+}
+
+<style>
+    .pop-card {
+        transition: all 0.25s ease;
+        cursor: pointer;
+    }
+
+        .pop-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 18px 35px rgba(0,0,0,0.12);
+        }
+
+    .dashboard-card {
+        background: #eaf4ff;
+        border: 1px solid #d0e7ff;
+        border-radius: 12px;
+        transition: 0.3s ease;
+    }
+
+        .dashboard-card:hover {
+            background: #d9ecff;
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0, 115, 230, 0.15);
+        }
+
+    .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 8px;
+        text-align: center;
+    }
+
+    .calendar-header {
+        font-size: 14px;
+        font-weight: 600;
+        color: #555;
+    }
+
+    .calendar-day {
+        padding: 12px;
+        border-radius: 10px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+
+        .calendar-day:hover {
+            transform: scale(1.08);
+        }
+
+        .calendar-day.today {
+            background: #1e88e5;
+            color: white;
+            font-weight: bold;
+        }
+
+        .calendar-day.holiday {
+            background: #ffb74d;
+            color: white;
+            font-weight: 600;
+        }
+
+        .calendar-day.leave {
+            background: orange;
+            color: white;
+            font-weight: 600;
+        }
+</style>
+
+<div class="page-accent">
+    <h3>Dashboard</h3>
+</div>
+
+<div class="row mt-3 g-4">
+
+    @if (isAdmin)
+    {
+        <div class="col-md-4">
+
+            <a asp-controller="Admin" asp-action="Employees"
+               class="text-decoration-none text-dark">
+                <div class="card shadow-sm border-0 p-4 dashboard-card pop-card mb-3">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3 fs-1">👥</div>
+                        <div>
+                            <h6 class="mb-1">Employees</h6>
+                            <h2 class="mb-0">@ViewBag.EmployeeCount</h2>
+                        </div>
+                    </div>
+                </div>
+            </a>
+
+            <a asp-controller="Admin" asp-action="Roles"
+               class="text-decoration-none text-dark">
+                <div class="card shadow-sm border-0 p-4 dashboard-card pop-card">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3 fs-1">🏷️</div>
+                        <div>
+                            <h6 class="mb-1">Roles</h6>
+                            <h2 class="mb-0">@ViewBag.RoleCount</h2>
+                        </div>
+                    </div>
+                </div>
+            </a>
+
+        </div>
+
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0 dashboard-card p-3">
+                <h4 class="text-center mb-3">📅 Calendar</h4>
+                <div id="calendar"></div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="col-md-12">
+            <div class="card shadow-sm border-0 dashboard-card p-3">
+                <h4 class="text-center mb-3">📅 Calendar</h4>
+                <div id="calendar"></div>
+            </div>
+        </div>
+    }
+
+</div>
+
+<script>
+    const holidayDates = [
+        @if (ViewBag.Holidays != null)
+        {
+                foreach (DateTime date in ViewBag.Holidays)
+                {
+                        @:new Date("@date.ToString("yyyy-MM-dd")"),
+                }
+        }
+    ];
+
+    const leaveDates = [
+        @if (ViewBag.ApprovedLeaveDates != null)
+        {
+                foreach (DateTime date in ViewBag.ApprovedLeaveDates)
+                {
+                        @:new Date("@date.ToString("yyyy-MM-dd")"),
+                }
+        }
+    ];
+
+    function isHoliday(day, month, year) {
+        return holidayDates.some(d =>
+            d.getDate() === day &&
+            d.getMonth() === month &&
+            d.getFullYear() === year
+        );
+    }
+
+    function isLeave(day, month, year) {
+        return leaveDates.some(d =>
+            d.getDate() === day &&
+            d.getMonth() === month &&
+            d.getFullYear() === year
+        );
+    }
+
+    function generateCalendar() {
+        const calendar = document.getElementById("calendar");
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth();
+
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        const monthNames = [
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"
+        ];
+
+        let html = `<div class="text-center fw-bold mb-3 fs-5">
+                        ${monthNames[month]} ${year}
+                    </div>`;
+
+        html += `<div class="calendar-grid">`;
+
+        const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        weekDays.forEach(d => {
+            html += `<div class="calendar-header">${d}</div>`;
+        });
+
+        for (let i = 0; i < firstDay; i++) {
+            html += `<div></div>`;
+        }
+
+        for (let day = 1; day <= daysInMonth; day++) {
+
+            const isToday = day === today.getDate();
+            const holiday = isHoliday(day, month, year);
+            const leave = isLeave(day, month, year);
+
+            let tooltip = "";
+
+            if (leave) {
+                tooltip = "You have approved leave on this day";
+            } else if (holiday) {
+                tooltip = "Holiday";
+            }
+
+            html += `<div class="calendar-day
+                        ${isToday ? "today" : ""}
+                        ${holiday ? "holiday" : ""}
+                        ${leave ? "leave" : ""}"
+                        title="${tooltip}">
+                        ${day}
+                     </div>`;
+        }
+
+        html += `</div>`;
+        calendar.innerHTML = html;
+    }
+
+    generateCalendar();
+</script>

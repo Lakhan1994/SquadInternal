@@ -1,0 +1,49 @@
+﻿@{
+    ViewData["Title"] = "Bulk Upload Holidays";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="page-accent d-flex justify-content-between align-items-center">
+    <h3 class="m-0">📂 Bulk Upload Holidays</h3>
+</div>
+
+<div class="card shadow-sm border-0 p-4 mt-3">
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success">
+            @TempData["Success"]
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">
+            @TempData["Error"]
+        </div>
+    }
+
+    <form asp-action="BulkUploadHolidays"
+          asp-controller="Admin"
+          method="post"
+          enctype="multipart/form-data">
+
+        @Html.AntiForgeryToken()
+
+        <div class="mb-3">
+            <label class="form-label">Select Excel File (.xlsx)</label>
+            <input type="file"
+                   name="file"
+                   class="form-control"
+                   accept=".xlsx,.xls"
+                   required />
+        </div>
+
+        <div class="d-flex justify-content-end">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-upload me-1"></i> Upload
+            </button>
+        </div>
+
+    </form>
+</div>

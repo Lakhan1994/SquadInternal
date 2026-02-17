@@ -1,0 +1,83 @@
+﻿@model SquadInternal.Models.Employee
+@using SquadInternal.Models
+
+@{
+    ViewData["Title"] = "Edit Employee";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+
+    var roles = ViewBag.Roles as List<Role>;
+    int currentRoleId = ViewBag.CurrentRoleId ?? 0;
+}
+
+<div class="page-accent d-flex justify-content-between align-items-center">
+    <h3 class="m-0">✏️ Edit Employee</h3>
+    <a asp-action="Employees" class="btn btn-light">Back</a>
+</div>
+
+<div class="card shadow-sm border-0 mt-3 p-4">
+    <form asp-action="EditEmployee" method="post">
+        @Html.AntiForgeryToken()
+
+        <input type="hidden" asp-for="Id" />
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label">First Name</label>
+                <input asp-for="FirstName" class="form-control" required />
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Last Name</label>
+                <input asp-for="LastName" class="form-control" required />
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Date of Birth</label>
+                <input asp-for="DateOfBirth" type="date" class="form-control" />
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Date of Joining</label>
+                <input asp-for="DateOfJoining" type="date" class="form-control" />
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Gender</label>
+                <select asp-for="Gender" class="form-select">
+                    <option value="">-- Select --</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Status</label>
+                <select asp-for="IsActive" class="form-select">
+                    <option value="true">Active</option>
+                    <option value="false">Inactive</option>
+                </select>
+            </div>
+
+            <div class="col-md-12">
+                <label class="form-label">Role</label>
+                <select name="roleId" class="form-select" required>
+                    <option value="">-- Select Role --</option>
+                    @if (roles != null)
+                    {
+                        foreach (var r in roles)
+                        {
+                            <option value="@r.Id" selected="@(r.Id == currentRoleId)">
+                                @r.Name
+                            </option>
+                        }
+                    }
+                </select>
+            </div>
+
+            <div class="col-12">
+                <button class="btn btn-primary">Update Employee</button>
+            </div>
+        </div>
+    </form>
+</div>

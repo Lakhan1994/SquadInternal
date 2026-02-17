@@ -1,0 +1,261 @@
+﻿@model List<SquadInternal.Models.SquadHoliday>
+
+@{
+    ViewData["Title"] = "Holiday Master";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+
+    int selectedYear = Context.Request.Query["year"].FirstOrDefault() != null
+        ? int.Parse(Context.Request.Query["year"])
+        : DateTime.Now.Year;
+
+    int? roleId = Context.Session.GetInt32("RoleId");
+    bool isAdmin = roleId == 1;
+}
+
+<div class="page-accent d-flex justify-content-between align-items-center">
+    <h3 class="m-0">Holiday</h3>
+
+    <div class="d-flex align-items-center gap-2">
+
+        <select class="form-select"
+                onchange="location.href='@Url.Action("Holidays", "Admin")?year=' + this.value">
+            @foreach (var y in ViewBag.AvailableYears as List<int>)
+            {
+                <option value="@y" selected="@(y == ViewBag.SelectedYear)">
+                    @y
+                </option>
+            }  
+        </select>
+
+        @if (isAdmin) 
+        {
+            <button type="button"    
+                    class="btn btn-primary d-flex align-items-center gap-2 px-3"
+                    data-bs-toggle="modal" 
+                    data-bs-target="#addHolidayModal">
+                <i class="bi bi-plus-lg"></i>
+                <span>Add</span>
+            </button>
+
+
+            <button class="btn btn-outline-primary"
+                    data-bs-toggle="modal"
+                    data-bs-target="#bulkUploadModal">
+                <i class="bi bi-cloud-upload"></i>
+            </button>
+        }
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success mt-3">@TempData["Success"]</div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger mt-3">@TempData["Error"]</div>
+}
+
+<div class="card shadow-sm border-0 mt-3">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th style="width:80px;">Id</th>
+                    <th>Name</th>
+                    <th>Date</th>
+                    @if (isAdmin)
+                    {
+                        <th style="width:160px;" class="text-center">Actions</th>
+                    }
+                </tr>
+            </thead>
+
+            <tbody>
+                @foreach (var h in Model.Where(h => h.HolidayDate.Year == selectedYear))
+                {
+                    <tr>
+                        <td>@h.Id</td>
+                        <td>@h.Name</td>
+                        <td>@h.HolidayDate.ToString("dd MMM yyyy")</td>
+
+                        @if (isAdmin)
+                        {
+                            <td class="text-center">
+                                <div class="d-flex justify-content-center gap-2">
+
+                                    <!-- EDIT -->
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-primary edit-btn"
+                                            data-id="@h.Id"
+                                            data-name="@h.Name"
+                                            data-date="@h.HolidayDate.ToString("yyyy-MM-dd")"
+                                            data-type="@h.Type"
+                                            data-halfday="@h.IsHalfDay">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+
+                                    <!-- DELETE -->
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-danger delete-btn"
+                                            data-id="@h.Id">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+
+                                    <!-- Hidden Delete Form -->
+                                    <form id="deleteForm-@h.Id"
+                                          asp-action="DeleteHoliday"
+                                          asp-controller="Admin"
+                                          method="post"
+                                          class="d-none">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@h.Id" />
+                                    </form>
+
+                                </div>
+                            </td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@if (isAdmin)
+{
+    <!-- ADD MODAL -->
+    <div class="modal fade" id="addHolidayModal" tabindex="-1">
+        <div class="modal-dialog modal-md modal-dialog-centered">
+            <div class="modal-content shadow">
+                <div class="modal-header">
+                    <h5 class="modal-title">+Add</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <form asp-action="CreateHoliday" asp-controller="Admin" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label>Holiday Name</label>
+                            <input name="Name" class="form-control" required />
+                        </div>
+                        <div class="mb-3">
+                            <label>Holiday Date</label>
+                            <input type="date"
+                                   name="HolidayDate"
+                                   value="@($"{selectedYear}-01-01")"
+                                   class="form-control"
+                                   required />
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- EDIT MODAL -->
+    <div class="modal fade" id="editHolidayModal" tabindex="-1">
+        <div class="modal-dialog modal-md modal-dialog-centered">
+            <div class="modal-content shadow">
+                <div class="modal-header">
+                    <h5 class="modal-title">+Edit</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <form asp-action="EditHoliday" asp-controller="Admin" method="post">
+                    @Html.AntiForgeryToken()
+
+                    <input type="hidden" name="Id" id="editId" />
+
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label>Holiday Name</label>
+                            <input name="Name" id="editName" class="form-control" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label>Holiday Date</label>
+                            <input type="date" name="HolidayDate" id="editDate" class="form-control" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label>Type</label>
+                            <select name="Type" id="editType" class="form-select">
+                                <option>National</option>
+                                <option>Optional</option>
+                                <option>Festival</option>
+                                <option>Company</option>
+                            </select>
+                        </div>
+
+                        <div class="form-check">
+                            <input type="checkbox" name="IsHalfDay" id="editHalfDay" class="form-check-input" />
+                            <label class="form-check-label">Half Day Holiday</label>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary">💾 Save Changes</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+
+            // DELETE
+            document.querySelectorAll(".delete-btn").forEach(button => {
+                button.addEventListener("click", function () {
+
+                    const id = this.dataset.id;
+
+                    toastr.warning(
+                        '<br/><br/><button class="btn btn-sm btn-danger me-2" onclick="confirmDelete(' + id + ')">Yes Delete</button>' +
+                        '<button class="btn btn-sm btn-secondary" onclick="toastr.clear()">Cancel</button>',
+                        'Are you sure?',
+                        {
+                            closeButton: true,
+                            allowHtml: true,
+                            timeOut: 0,
+                            extendedTimeOut: 0
+                        }
+                    );
+                });
+            });
+
+            // EDIT
+            document.querySelectorAll(".edit-btn").forEach(button => {
+                button.addEventListener("click", function () {
+
+                    document.getElementById("editId").value = this.dataset.id;
+                    document.getElementById("editName").value = this.dataset.name;
+                    document.getElementById("editDate").value = this.dataset.date;
+                    document.getElementById("editType").value = this.dataset.type;
+                    document.getElementById("editHalfDay").checked =
+                        this.dataset.halfday === "True";
+
+                    var modal = new bootstrap.Modal(document.getElementById('editHolidayModal'));
+                    modal.show();
+                });
+            });
+
+        });
+
+        function confirmDelete(id) {
+            document.getElementById("deleteForm-" + id).submit();
+        }
+    </script>
+
+}

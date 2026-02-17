@@ -1,0 +1,63 @@
+﻿@model SquadInternal.Models.EmployeeLeave
+
+@{
+    ViewData["Title"] = "Apply Leave";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="page-accent d-flex justify-content-between align-items-center">
+    <h3 class="m-0">Apply Leave</h3>
+</div>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+
+<div class="card shadow-sm border-0 mt-3 p-4">
+    <form asp-action="ApplyLeave" method="post">
+        @Html.AntiForgeryToken()
+
+        <div class="row g-3">
+
+            <div class="col-md-6">
+                <label class="form-label">Leave Type</label>
+                <select asp-for="LeaveType" class="form-select" required>
+                    <option value="">-- Select --</option>
+                    <option>Casual</option>
+                    <option>Sick</option>
+                    <option>Earned</option>
+                    <option>Work From Home</option>
+                    <option>Half Day</option>
+                </select>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">From Date</label>
+                <input asp-for="FromDate" type="date" class="form-control" required />
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">To Date</label>
+                <input asp-for="ToDate" type="date" class="form-control" required />
+            </div>
+
+            <div class="col-md-12">
+                <label class="form-label">Reason</label>
+                <textarea asp-for="Reason" class="form-control" rows="3"></textarea>
+            </div>
+
+        </div>
+
+        <div class="mt-4 text-end">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-circle me-1"></i> Submit Leave
+            </button>
+        </div>
+    </form>
+</div>

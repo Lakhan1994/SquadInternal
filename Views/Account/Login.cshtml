@@ -1,0 +1,58 @@
+﻿@{
+    ViewData["Title"] = "Login";
+    
+}
+
+<div class="login-page d-flex align-items-center">
+
+    <!-- Full width wrapper -->
+    <div class="w-100">
+
+        <!-- Row with no gutters, full-width on small screens -->
+        <div class="login-card row g-0 shadow-lg rounded mx-auto"
+             style="width: 80%; overflow: hidden;">
+
+            <!-- Left: Info Panel -->
+            <div class="col-12 col-md-7 text-white p-4 p-md-5 d-flex flex-column justify-content-center align-items-center"
+                 style="background: #007bff;">
+                <img src="~/images/login-banner.png"
+                     alt="Login Banner"
+                     class="img-fluid mb-3"
+                     style="max-height: 200px; width: 100%; object-fit: contain;" />
+
+                <hr class="d-none d-md-block" style="border-top: 2px solid rgba(255,255,255,0.5); width: 80%;" />
+                <p class="text-center d-none d-md-block">We Provide Services with utmost Sincerity and Punctuality</p>
+            </div>
+
+            <!-- Right: Login Form -->
+            <div class="col-12 col-md-5 bg-white p-4 p-md-5 d-flex flex-column justify-content-center">
+                <h3 class="fw-bold text-primary mb-3">LOGIN HERE</h3>
+                <p class="text-muted mb-4">Sign in with your existing account</p>
+
+                @if (ViewBag.Error != null)
+                {
+                    <div class="alert alert-danger">@ViewBag.Error</div>
+                }
+
+                <form asp-action="Login" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="mb-3">
+                        <label>Email Address</label>
+                        <input type="email" name="email" class="form-control" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label>Password</label>
+                        <input type="password" name="password" class="form-control" required />
+                    </div>
+
+                    <div class="mb-3 text-end">
+                        <a href="#" class="small text-primary">Forgot your password?</a>
+                    </div>
+
+                    <button type="submit" class="btn btn-unique w-100">Sign in</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

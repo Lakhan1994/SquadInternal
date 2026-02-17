@@ -1,0 +1,223 @@
+html, body {
+    height: 100%;
+    margin: 0;
+    overflow-y: auto;
+}
+
+/* ================= LOGIN PAGE ================= */
+
+.login-page {
+    min-height: 100vh;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ================= PAGE HEADER ================= */
+
+.page-accent {
+    background: #E8F4FF;
+    border-left: 6px solid #4DA3FF;
+    padding: 14px 18px;
+    border-radius: 12px;
+    margin-bottom: 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+    .page-accent h3 {
+        margin: 0;
+        font-weight: 700;
+        color: #1b4f72;
+    }
+
+.btn-accent {
+    background: #4DA3FF;
+    border: none;
+    color: white;
+    font-weight: 600;
+}
+
+    .btn-accent:hover {
+        background: #2E86DE;
+    }
+
+/* ================= ROLES HEADER ================= */
+
+.roles-accent {
+    background: #E8F4FF;
+    border-left: 6px solid #4DA3FF;
+    padding: 14px 18px;
+    border-radius: 12px;
+    margin-bottom: 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+    .roles-accent h3 {
+        margin: 0;
+        font-weight: 700;
+        color: #1b4f72;
+    }
+
+.btn-unique {
+    background: #2E86DE;
+    border: none;
+    color: white;
+    font-weight: 600;
+}
+
+    .btn-unique:hover {
+        background: #4DA3FF;
+        color: white;
+    }
+
+/* ================= ADMIN LAYOUT ================= */
+
+.admin-shell {
+    min-height: 100vh;
+    display: flex;
+}
+
+.sidebar {
+    width: 260px;
+    background: #0757B3;
+    color: white;
+    padding: 18px;
+}
+
+.logo-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 6px 18px;
+    border-bottom: 1px solid rgba(255,255,255,.12);
+    margin-bottom: 16px;
+}
+
+.content {
+    flex: 1;
+    background: #F5F7FA;
+    padding: 24px;
+}
+
+/* ================= MENU ================= */
+
+.menu-link {
+    display: block;
+    color: white;
+    text-decoration: none;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    font-weight: 500;
+}
+
+.active-menu {
+    background: white;
+    color: #0757B3 !important;
+    font-weight: 700;
+}
+
+/* ================= DASHBOARD CARDS ================= */
+
+.dashboard-card {
+    transition: 0.2s ease-in-out;
+}
+
+    .dashboard-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+    }
+
+/* ================= NAV LINKS ================= */
+
+.nav-link {
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+    .nav-link:hover {
+        background-color: rgba(255,255,255,0.15);
+        padding-left: 14px;
+    }
+
+    .nav-link.active {
+        background-color: rgba(255,255,255,0.25);
+    }
+
+.master-title {
+    color: #8fd3ff;
+    font-size: 20px;
+    letter-spacing: 1px;
+    font-weight: 600;
+}
+
+/* ================= COMPACT CALENDAR ================= */
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+    text-align: center;
+}
+
+.calendar-header {
+    font-size: 8px;
+    font-weight: 400;
+    color: #555;
+}
+
+.calendar-day {
+    padding: 5px;
+    border-radius: 6px;
+    font-size: 8px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+    .calendar-day:hover {
+        background-color: #1e4f9c;
+        color: white;
+    }
+
+    .calendar-day.today {
+        background-color: #0d6efd;
+        color: white;
+        font-weight: bold;
+    }
+
+    .calendar-day.holiday {
+        background-color: #ff9800;
+        color: white;
+        font-weight: 400;
+    }
+
+/* ================= BOOTSTRAP MODAL FIX ================= */
+
+.modal {
+    z-index: 1055 !important;
+}
+
+.modal-backdrop {
+    z-index: 1050 !important;
+}
+.page-accent .btn {
+    height: 38px;
+}
+.btn-primary {
+    color: #fff !important;
+}
+.active-menu {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+    .active-menu i {
+        color: #000000 !important;
+    }
