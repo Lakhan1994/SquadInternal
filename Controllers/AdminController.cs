@@ -24,7 +24,7 @@ namespace SquadInternal.Controllers
             _passwordService = passwordService;
         }
 
-        // ================= DASHBOARD =================
+        // ================= ADMIN DASHBOARD =================
         [SessionAuthorize(SessionAuthMode.AnyLoggedInUser)]
         public async Task<IActionResult> Dashboard()
         {
