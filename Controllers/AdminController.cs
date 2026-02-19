@@ -24,6 +24,43 @@ namespace SquadInternal.Controllers
             _passwordService = passwordService;
         }
 
+        // ================= SAFE HELPERS =================
+
+        private int? CurrentUserId => HttpContext.Session.GetInt32("UserId");
+
+        private async Task<Employee?> GetCurrentEmployeeAsync()
+        {
+            if (CurrentUserId == null)
+                return null;
+
+            return await _db.Employees
+                .FirstOrDefaultAsync(e => e.UserId == CurrentUserId && e.IsActive);
+        }
+
+        private async Task<bool> HasOverlappingLeaveAsync(int employeeId, DateTime from, DateTime to)
+        {
+            return await _db.EmployeeLeaves.AnyAsync(l =>
+                l.EmployeeId == employeeId &&
+                l.Status != "Rejected" &&
+                l.Status != "Cancelled" &&
+                from.Date <= l.ToDate.Date &&
+                to.Date >= l.FromDate.Date
+            );
+        }
+
+        private List<DateTime> ExpandDates(DateTime from, DateTime to)
+        {
+            var days = (to.Date - from.Date).Days;
+
+            if (days < 0)
+                return new List<DateTime>();
+
+            return Enumerable.Range(0, days + 1)
+                .Select(d => from.Date.AddDays(d))
+                .ToList();
+        }
+
+
         // ================= ADMIN DASHBOARD =================
         [SessionAuthorize(SessionAuthMode.AnyLoggedInUser)]
         public async Task<IActionResult> Dashboard()
@@ -38,29 +75,19 @@ namespace SquadInternal.Controllers
 
             ViewBag.Today = DateTime.Today;
 
-            var userId = HttpContext.Session.GetInt32("UserId");
+            var employee = await GetCurrentEmployeeAsync();
 
-            if (userId != null)
+            if (employee != null)
             {
-                var employee = await _db.Employees
-                    .FirstOrDefaultAsync(e => e.UserId == userId && e.IsActive);
+                var approvedLeaves = await _db.EmployeeLeaves
+                    .Where(l => l.EmployeeId == employee.Id && l.Status == "Approved")
+                    .ToListAsync();
 
-                if (employee != null)
-                {
-                    var approvedLeaves = await _db.EmployeeLeaves
-                        .Where(l => l.EmployeeId == employee.Id && l.Status == "Approved")
-                        .ToListAsync();
-
-                    // Expand leave range (FromDate to ToDate)
-                    var leaveDates = approvedLeaves
-                        .SelectMany(l =>
-                            Enumerable.Range(0, (l.ToDate.Date - l.FromDate.Date).Days + 1)
-                            .Select(d => l.FromDate.Date.AddDays(d)))
-                        .ToList();
-
-                    ViewBag.ApprovedLeaveDates = leaveDates;
-                }
+                ViewBag.ApprovedLeaveDates = approvedLeaves
+                    .SelectMany(l => ExpandDates(l.FromDate, l.ToDate))
+                    .ToList();
             }
+
 
             return View();
         }
@@ -95,7 +122,45 @@ namespace SquadInternal.Controllers
 
             TempData["Success"] = "Role created successfully.";
             return RedirectToAction("Roles");
-        } 
+        }
+
+        [AuthorizeAdmin]
+        [HttpGet]
+        public async Task<IActionResult> EditRole(int id)
+        {
+            var role = await _db.Roles.FirstOrDefaultAsync(r => r.Id == id && r.IsActive);
+
+            if (role == null)
+            {
+                TempData["Error"] = "Role not found.";
+                return RedirectToAction("Roles");
+            }
+
+            return View(role);
+        }
+
+        [AuthorizeAdmin]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditRole(Role model)
+        {
+            if (!ModelState.IsValid)
+                return View(model);
+
+            var role = await _db.Roles.FindAsync(model.Id);
+
+            if (role == null)
+                return NotFound();
+
+            role.Name = model.Name;
+
+            await _db.SaveChangesAsync();
+
+            TempData["Success"] = "Role updated successfully.";
+            return RedirectToAction("Roles");
+        }
+
+
 
         // ================= EMPLOYEES =================
         [AuthorizeAdmin]
@@ -316,14 +381,11 @@ namespace SquadInternal.Controllers
             }
 
             // 🔥 OVERLAP CHECK (FIXED WITH .Date)
-            bool overlappingLeave = await _db.EmployeeLeaves
-                .AnyAsync(l =>
-                    l.EmployeeId == employee.Id &&
-                    l.Status != "Rejected" &&
-                    l.Status != "Cancelled" &&
-                    model.FromDate.Date <= l.ToDate.Date &&
-                    model.ToDate.Date >= l.FromDate.Date
-                );
+            bool overlappingLeave = await HasOverlappingLeaveAsync(
+            employee.Id,
+            model.FromDate,
+            model.ToDate
+            );
 
             if (overlappingLeave)
             {
@@ -371,36 +433,28 @@ namespace SquadInternal.Controllers
             }
 
             // 🔥 BLOCK ALREADY APPLIED LEAVE DATES FOR CURRENT USER
-            var userId = HttpContext.Session.GetInt32("UserId");
 
-            if (userId != null)
+            var employee = await GetCurrentEmployeeAsync();
+
+            if (employee != null)
             {
-                var employee = await _db.Employees
-                    .FirstOrDefaultAsync(e => e.UserId == userId && e.IsActive);
+                var existingLeaves = await _db.EmployeeLeaves
+                    .Where(l => l.EmployeeId == employee.Id &&
+                                l.Status != "Rejected" &&
+                                l.Status != "Cancelled")
+                    .ToListAsync();
 
-                if (employee != null)
-                {
-                    var existingLeaves = await _db.EmployeeLeaves
-                        .Where(l => l.EmployeeId == employee.Id &&
-                                    l.Status != "Rejected" &&
-                                    l.Status != "Cancelled")
-                        .ToListAsync();
-
-                    var blockedDates = existingLeaves
-                        .SelectMany(l =>
-                            Enumerable.Range(0, (l.ToDate.Date - l.FromDate.Date).Days + 1)
-                            .Select(d => l.FromDate.Date.AddDays(d)))
-                        .Distinct()
-                        .ToList();
-
-                    ViewBag.BlockedLeaveDates = blockedDates;
-                }
+                ViewBag.BlockedLeaveDates = existingLeaves
+                    .SelectMany(l => ExpandDates(l.FromDate, l.ToDate))
+                    .Distinct()
+                    .ToList();
             }
+
 
             return View(leaves);
         }
 
-       [AuthorizeAdmin]
+        [AuthorizeAdmin]
         public async Task<IActionResult> MyLeaves()
         {
             var userId = HttpContext.Session.GetInt32("UserId");
@@ -535,7 +589,7 @@ namespace SquadInternal.Controllers
             return View(holiday);
         }
         // ================= EDIT HOLIDAY =================
-       
+
 
         [AuthorizeAdmin]
         [HttpPost]
@@ -550,7 +604,7 @@ namespace SquadInternal.Controllers
             if (holiday == null)
                 return NotFound();
 
-            holiday.Name = model.Name;                 
+            holiday.Name = model.Name;
             holiday.HolidayDate = model.HolidayDate;
             holiday.Type = model.Type;
             holiday.IsHalfDay = model.IsHalfDay;
@@ -576,5 +630,55 @@ namespace SquadInternal.Controllers
             return RedirectToAction("LeaveManagement");
         }
 
+        public IActionResult DownloadHolidayTemplate()
+        {
+            var filePath = Path.Combine(Directory.GetCurrentDirectory(),
+                "wwwroot/templates/HolidayTemplate.xlsx");
+
+            var contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
+            return PhysicalFile(filePath, contentType, "HolidayTemplate.xlsx");
+        }
+
+        // ================= CREATE HOLIDAY =================
+
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateHoliday(SquadHoliday model)
+        {
+            if (!ModelState.IsValid)
+            {
+                TempData["Error"] = "Please fill all required fields.";
+                return RedirectToAction("Holidays");
+            }
+
+            bool exists = await _db.SquadHolidays
+                .AnyAsync(h => h.IsActive &&
+                               h.HolidayDate.Date == model.HolidayDate.Date);
+
+            if (exists)
+            {
+                TempData["Error"] = "Holiday already exists on this date.";
+                return RedirectToAction("Holidays");
+            }
+
+            model.CreatedOn = DateTime.Now;
+            model.IsActive = true;
+
+            // 🔥 IMPORTANT FIX
+            model.Type = string.IsNullOrEmpty(model.Type) ? "General" : model.Type;
+
+            _db.SquadHolidays.Add(model);
+            await _db.SaveChangesAsync();
+
+            TempData["Success"] = "Holiday added successfully.";
+            return RedirectToAction("Holidays");
+        }
+
+
+
     }
 }
+
+

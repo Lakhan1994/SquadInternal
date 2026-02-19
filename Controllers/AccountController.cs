@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using SquadInternal.Data;
 using SquadInternal.Services;
+using System.Threading.Tasks;
 
 namespace SquadInternal.Controllers
 {
@@ -15,8 +16,6 @@ namespace SquadInternal.Controllers
             _db = db;
             _passwordService = passwordService;
         }
-
-       
 
         // -------------------- LOGIN (GET) --------------------
         [HttpGet]
@@ -36,11 +35,14 @@ namespace SquadInternal.Controllers
                 return View();
             }
 
-            email = email.Trim();
+            email = email.Trim().ToLower();
 
-            // Safe email comparison
+            // Case-insensitive email check
             var user = await _db.Users
-                .FirstOrDefaultAsync(u => u.Email != null && u.Email == email);
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u =>
+                    u.Email != null &&
+                    u.Email.ToLower() == email);
 
             if (user == null)
             {
@@ -63,20 +65,13 @@ namespace SquadInternal.Controllers
             // Clear old session
             HttpContext.Session.Clear();
 
-            // Set session
+            // Set new session
             HttpContext.Session.SetInt32("UserId", user.Id);
             HttpContext.Session.SetInt32("RoleId", user.RoleId);
             HttpContext.Session.SetString("UserName", user.Name ?? "User");
 
-            // Redirect based on role
-            if (user.RoleId == 1)
-            {
-                return RedirectToAction("Dashboard", "Admin");
-            }
-            else
-            {
-                return RedirectToAction("Dashboard", "Admin");
-            }
+            // Redirect (same for all roles currently)
+            return RedirectToAction("Dashboard", "Admin");
         }
 
         // -------------------- LOGOUT --------------------
@@ -84,9 +79,7 @@ namespace SquadInternal.Controllers
         public IActionResult Logout()
         {
             HttpContext.Session.Clear();
-            return RedirectToAction("Login");
+            return RedirectToAction(nameof(Login));
         }
-
-
     }
 }

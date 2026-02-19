@@ -1,30 +1,45 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace SquadInternal.Models
 {
     public class EmployeeEducation
     {
+        // ==========================
+        // PRIMARY KEY
+        // ==========================
         public int Id { get; set; }
 
-        public int EmployeeId { get; set; }    
-        public Employee Employee { get; set; } = null!;
+        // ==========================
+        // FOREIGN KEY
+        // ==========================
+        [Required]
+        public int EmployeeId { get; set; }
 
-        [Required, MaxLength(50)]
-        public string Level { get; set; } = "";    
+        [ForeignKey(nameof(EmployeeId))]
+        public Employee? Employee { get; set; }
 
-        [MaxLength(120)]
+        // ==========================
+        // EDUCATION DETAILS
+        // ==========================
+        [Required]
+        [StringLength(50)]
+        public string Level { get; set; } = string.Empty;
+
+        [StringLength(150)]
         public string? Institute { get; set; }
 
-        [MaxLength(120)]
+        [StringLength(150)]
         public string? BoardOrUniversity { get; set; }
 
-        [MaxLength(60)]
+        [StringLength(100)]
         public string? Stream { get; set; }
 
+        [Range(1900, 2100, ErrorMessage = "Invalid passing year.")]
         public int? PassingYear { get; set; }
 
-        [MaxLength(20)]
+        [StringLength(20)]
         public string? PercentageOrCGPA { get; set; }
     }
 }
