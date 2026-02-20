@@ -12,8 +12,8 @@ using SquadInternal.Data;
 namespace SquadInternal.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260211071352_IdentityStabilization")]
-    partial class IdentityStabilization
+    [Migration("20260220100753_Initial_Create")]
+    partial class Initial_Create
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -69,6 +69,9 @@ namespace SquadInternal.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<int?>("ReportingToUserId")
+                        .HasColumnType("int");
+
                     b.Property<decimal?>("Salary")
                         .HasColumnType("decimal(18,2)");
 
@@ -78,6 +81,8 @@ namespace SquadInternal.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("AddedBy");
+
+                    b.HasIndex("ReportingToUserId");
 
                     b.HasIndex("UserId");
 
@@ -94,18 +99,21 @@ namespace SquadInternal.Migrations
 
                     b.Property<string>("DocumentName")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
 
                     b.Property<string>("DocumentType")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<int>("EmployeeId")
                         .HasColumnType("int");
 
                     b.Property<string>("FilePath")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
 
                     b.Property<DateTime>("UploadedDate")
                         .HasColumnType("datetime2");
@@ -126,15 +134,15 @@ namespace SquadInternal.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("BoardOrUniversity")
-                        .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)");
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
 
                     b.Property<int>("EmployeeId")
                         .HasColumnType("int");
 
                     b.Property<string>("Institute")
-                        .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)");
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
 
                     b.Property<string>("Level")
                         .IsRequired()
@@ -149,14 +157,60 @@ namespace SquadInternal.Migrations
                         .HasColumnType("nvarchar(20)");
 
                     b.Property<string>("Stream")
-                        .HasMaxLength(60)
-                        .HasColumnType("nvarchar(60)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("EmployeeId");
 
                     b.ToTable("EmployeeEducations");
+                });
+
+            modelBuilder.Entity("SquadInternal.Models.EmployeeLeave", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("AppliedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ApprovedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("EmployeeId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("FromDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("LeaveType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("ToDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApprovedByUserId");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.ToTable("EmployeeLeaves");
                 });
 
             modelBuilder.Entity("SquadInternal.Models.Role", b =>
@@ -211,10 +265,6 @@ namespace SquadInternal.Migrations
                     b.Property<DateTime>("CreatedOn")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Description")
-                        .HasMaxLength(250)
-                        .HasColumnType("nvarchar(250)");
-
                     b.Property<DateTime>("HolidayDate")
                         .HasColumnType("datetime2");
 
@@ -230,7 +280,6 @@ namespace SquadInternal.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Type")
-                        .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
@@ -246,6 +295,9 @@ namespace SquadInternal.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -284,6 +336,11 @@ namespace SquadInternal.Migrations
                         .HasForeignKey("AddedBy")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("SquadInternal.Models.User", "ReportingToUser")
+                        .WithMany()
+                        .HasForeignKey("ReportingToUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("SquadInternal.Models.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
@@ -291,6 +348,8 @@ namespace SquadInternal.Migrations
                         .IsRequired();
 
                     b.Navigation("AddedByUser");
+
+                    b.Navigation("ReportingToUser");
 
                     b.Navigation("User");
                 });
@@ -313,6 +372,23 @@ namespace SquadInternal.Migrations
                         .HasForeignKey("EmployeeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Employee");
+                });
+
+            modelBuilder.Entity("SquadInternal.Models.EmployeeLeave", b =>
+                {
+                    b.HasOne("SquadInternal.Models.User", "ApprovedByUser")
+                        .WithMany()
+                        .HasForeignKey("ApprovedByUserId");
+
+                    b.HasOne("SquadInternal.Models.Employee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ApprovedByUser");
 
                     b.Navigation("Employee");
                 });
