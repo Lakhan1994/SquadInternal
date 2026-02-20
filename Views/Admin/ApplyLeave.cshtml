@@ -11,23 +11,33 @@
 
 @if (TempData["Error"] != null)
 {
-    <div class="alert alert-danger">@TempData["Error"]</div>
+    <div class="alert alert-danger alert-dismissible fade show mt-3">
+        @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
 }
 
 @if (TempData["Success"] != null)
 {
-    <div class="alert alert-success">@TempData["Success"]</div>
+    <div class="alert alert-success alert-dismissible fade show mt-3">
+        @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
 }
 
 <div class="card shadow-sm border-0 mt-3 p-4">
     <form asp-action="ApplyLeave" method="post">
+
         @Html.AntiForgeryToken()
+
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
         <div class="row g-3">
 
+            <!-- Leave Type -->
             <div class="col-md-6">
-                <label class="form-label">Leave Type</label>
-                <select asp-for="LeaveType" class="form-select" required>
+                <label asp-for="LeaveType" class="form-label fw-semibold"></label>
+                <select asp-for="LeaveType" class="form-select">
                     <option value="">-- Select --</option>
                     <option>Casual</option>
                     <option>Sick</option>
@@ -35,29 +45,57 @@
                     <option>Work From Home</option>
                     <option>Half Day</option>
                 </select>
+                <span asp-validation-for="LeaveType" class="text-danger"></span>
             </div>
 
+            <!-- From Date -->
             <div class="col-md-6">
-                <label class="form-label">From Date</label>
-                <input asp-for="FromDate" type="date" class="form-control" required />
+                <label asp-for="FromDate" class="form-label fw-semibold"></label>
+                <input asp-for="FromDate"
+                       type="date"
+                       class="form-control"
+                       min="@DateTime.Now.ToString("yyyy-MM-dd")" />
+                <span asp-validation-for="FromDate" class="text-danger"></span>
             </div>
 
+            <!-- To Date -->
             <div class="col-md-6">
-                <label class="form-label">To Date</label>
-                <input asp-for="ToDate" type="date" class="form-control" required />
+                <label asp-for="ToDate" class="form-label fw-semibold"></label>
+                <input asp-for="ToDate"
+                       type="date"
+                       class="form-control"
+                       min="@DateTime.Now.ToString("yyyy-MM-dd")" />
+                <span asp-validation-for="ToDate" class="text-danger"></span>
             </div>
 
+            <!-- Reason -->
             <div class="col-md-12">
-                <label class="form-label">Reason</label>
-                <textarea asp-for="Reason" class="form-control" rows="3"></textarea>
+                <label asp-for="Reason" class="form-label fw-semibold"></label>
+                <textarea asp-for="Reason"
+                          class="form-control"
+                          rows="3"
+                          placeholder="Enter reason (optional)"></textarea>
+                <span asp-validation-for="Reason" class="text-danger"></span>
             </div>
 
         </div>
 
         <div class="mt-4 text-end">
-            <button type="submit" class="btn btn-primary">
+            <button type="submit" class="btn btn-primary px-4">
                 <i class="bi bi-check-circle me-1"></i> Submit Leave
             </button>
         </div>
+
     </form>
 </div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        // Prevent ToDate being earlier than FromDate
+        document.getElementById("FromDate").addEventListener("change", function () {
+            document.getElementById("ToDate").min = this.value;
+        });
+    </script>
+}
