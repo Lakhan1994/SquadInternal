@@ -8,9 +8,39 @@
     bool isAdmin = roleId == 1;
 }
 
+<!-- HEADER WITH PROFILE ICON -->
+<div class="page-accent d-flex justify-content-between align-items-center">
+    <h3 class="m-0">Dashboard</h3>
 
-<div class="page-accent">
-    <h3>Dashboard</h3>
+    <div class="dropdown">
+        <button class="btn btn-light rounded-circle"
+                type="button"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+                style="width:45px;height:45px;">
+            <i class="bi bi-person-circle fs-4"></i>
+        </button>
+
+        <ul class="dropdown-menu dropdown-menu-end shadow p-3" style="width:250px;">
+
+            <li class="mb-2">
+                <button class="btn btn-sm btn-outline-primary w-100"
+                        data-bs-toggle="modal"
+                        data-bs-target="#changePasswordModal">
+                    Change Password
+                </button>
+            </li>
+
+            <li>
+                <a class="btn btn-sm btn-outline-danger w-100"
+                   asp-controller="Account"
+                   asp-action="Logout">
+                    Logout
+                </a>
+            </li>
+
+        </ul>
+    </div>
 </div>
 
 <div class="row mt-3 g-4">
@@ -64,6 +94,53 @@
         </div>
     }
 
+</div>
+
+<!-- CHANGE PASSWORD MODAL -->
+<div class="modal fade" id="changePasswordModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title">Change Password</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <form asp-controller="Account"
+                  asp-action="ChangePassword"
+                  method="post">
+                @Html.AntiForgeryToken()
+
+                <div class="modal-body">
+
+                    <div class="mb-3">
+                        <label class="form-label">Current Password</label>
+                        <input type="password"
+                               name="currentPassword"
+                               class="form-control"
+                               required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">New Password</label>
+                        <input type="password"
+                               name="newPassword"
+                               class="form-control"
+                               required />
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-primary w-100">
+                        Update Password
+                    </button>
+                </div>
+
+            </form>
+
+        </div>
+    </div>
 </div>
 
 <script>

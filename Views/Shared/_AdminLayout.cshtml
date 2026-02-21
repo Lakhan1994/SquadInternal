@@ -20,11 +20,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
 
     @RenderSection("Scripts", required: false)
-
-    
 </head>
 
 <body>
+
     <div class="admin-shell">
 
         <!-- LEFT SIDEBAR -->
@@ -89,7 +88,7 @@
                     </li>
                 }
 
-                <!-- Holidays (All Users) -->
+                <!-- Holidays -->
                 <li class="nav-item mb-3">
                     <a class="nav-link text-white @(currentAction == "Holidays" ? "active-menu" : "")"
                        asp-controller="Admin"
@@ -132,6 +131,7 @@
             timeOut: "2500"
         };
     </script>
+
     @if (TempData["Success"] != null)
     {
         <script>
@@ -145,7 +145,6 @@
             toastr.error("@TempData["Error"]");
         </script>
     }
-
 
 </body>
 </html>

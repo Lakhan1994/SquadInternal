@@ -81,5 +81,38 @@ namespace SquadInternal.Controllers
             HttpContext.Session.Clear();
             return RedirectToAction(nameof(Login));
         }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ChangePassword(string currentPassword, string newPassword)
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+
+            if (userId == null)
+                return RedirectToAction("Login");
+
+            var user = await _db.Users.FindAsync(userId);
+
+            if (user == null)
+                return RedirectToAction("Login");
+
+            // Verify current password
+            bool isValid = _passwordService.Verify(user, currentPassword);
+
+            if (!isValid)
+            {
+                TempData["Error"] = "Current password is incorrect.";
+                return RedirectToAction("Dashboard", "Admin");
+            }
+
+            // Update password
+            user.PasswordHash = _passwordService.HashPassword(newPassword);
+
+            await _db.SaveChangesAsync();
+
+            TempData["Success"] = "Password updated successfully.";
+
+            return RedirectToAction("Dashboard", "Admin");
+        }
     }
 }
