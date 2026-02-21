@@ -676,7 +676,96 @@ namespace SquadInternal.Controllers
             return RedirectToAction("Holidays");
         }
 
+        
+        [AuthorizeAdmin]
+        [HttpGet]
+        public async Task<IActionResult> GetEmployeeEducations(int employeeId)
+        {
+            var data = await _db.EmployeeEducations
+                .Where(e => e.EmployeeId == employeeId)
+                .Select(e => new
+                {
+                    id = e.Id,
+                    level = e.Level,
+                    stream = e.Stream,
+                    institute = e.Institute,
+                    passingYear = e.PassingYear,
+                    percentageOrCGPA = e.PercentageOrCGPA
+                })
+                .ToListAsync();
 
+            return Json(data);
+        }
+
+        [AuthorizeAdmin]
+        [HttpGet]
+        public async Task<IActionResult> GetEducation(int id)
+        {
+            var edu = await _db.EmployeeEducations.FindAsync(id);
+
+            if (edu == null)
+                return NotFound();
+
+            return Json(new
+            {
+                id = edu.Id,
+                level = edu.Level,
+                stream = edu.Stream,
+                institute = edu.Institute,
+                passingYear = edu.PassingYear,
+                percentageOrCGPA = edu.PercentageOrCGPA
+            });
+        }
+
+        [AuthorizeAdmin]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddEducation([FromBody] EmployeeEducation model)
+        {
+            if (model == null)
+                return Json(new { success = false, message = "Invalid data" });
+
+            _db.EmployeeEducations.Add(model);
+            await _db.SaveChangesAsync();
+
+            return Json(new { success = true });
+        }
+
+        [AuthorizeAdmin]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateEducation([FromBody] EmployeeEducation model)
+        {
+            var edu = await _db.EmployeeEducations.FindAsync(model.Id);
+
+            if (edu == null)
+                return NotFound();
+
+            edu.Level = model.Level;
+            edu.Stream = model.Stream;
+            edu.Institute = model.Institute;
+            edu.PassingYear = model.PassingYear;
+            edu.PercentageOrCGPA = model.PercentageOrCGPA;
+
+            await _db.SaveChangesAsync();
+
+            return Json(new { success = true });
+        }
+
+        [AuthorizeAdmin]
+        [HttpDelete]
+        public async Task<IActionResult> DeleteEducation(int id)
+        {
+            var edu = await _db.EmployeeEducations.FindAsync(id);
+
+            if (edu == null)
+                return NotFound();
+
+            _db.EmployeeEducations.Remove(edu);
+            await _db.SaveChangesAsync();
+
+            return Json(new { success = true });
+        }
 
     }
 }
