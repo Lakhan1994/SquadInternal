@@ -527,13 +527,6 @@ namespace SquadInternal.Controllers
 
         // ================= BULK UPLOAD HOLIDAYS =================
         [AuthorizeAdmin]
-        [HttpGet]
-        public IActionResult BulkUploadHolidays()
-        {
-            return View();
-        }
-
-        [AuthorizeAdmin]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> BulkUploadHolidays(IFormFile file)
@@ -544,10 +537,61 @@ namespace SquadInternal.Controllers
                 return RedirectToAction("BulkUploadHolidays");
             }
 
-            // For now just confirm upload (real Excel parsing can be added later)
-            TempData["Success"] = "File uploaded successfully (processing not implemented yet).";
-            return RedirectToAction("BulkUploadHolidays");
+            var holidaysAdded = 0;
+
+            using (var stream = new MemoryStream())
+            {
+                await file.CopyToAsync(stream);
+
+                using (var package = new OfficeOpenXml.ExcelPackage(stream))
+                {
+                    var worksheet = package.Workbook.Worksheets.FirstOrDefault();
+                    if (worksheet == null)
+                    {
+                        TempData["Error"] = "Invalid Excel file.";
+                        return RedirectToAction("BulkUploadHolidays");
+                    }
+
+                    int rowCount = worksheet.Dimension.Rows;
+
+                    for (int row = 2; row <= rowCount; row++) // Skip header
+                    {
+                        var name = worksheet.Cells[row, 1].Text;
+                        var dateText = worksheet.Cells[row, 2].Text;
+                        var type = worksheet.Cells[row, 3].Text;
+
+                        if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(dateText))
+                            continue;
+
+                        if (!DateTime.TryParse(dateText, out DateTime holidayDate))
+                            continue;
+
+                        bool exists = await _db.SquadHolidays
+                            .AnyAsync(h => h.HolidayDate.Date == holidayDate.Date && h.IsActive);
+
+                        if (!exists)
+                        {
+                            _db.SquadHolidays.Add(new SquadHoliday
+                            {
+                                Name = name,
+                                HolidayDate = holidayDate,
+                                Type = string.IsNullOrEmpty(type) ? "General" : type,
+                                IsActive = true,
+                                CreatedOn = DateTime.Now
+                            });
+
+                            holidaysAdded++;
+                        }
+                    }
+
+                    await _db.SaveChangesAsync();
+                }
+            }
+
+            TempData["Success"] = $"{holidaysAdded} holidays uploaded successfully.";
+            return RedirectToAction("Holidays");
         }
+
 
         // ================= DELETE HOLIDAY =================
         [AuthorizeAdmin]
@@ -765,6 +809,49 @@ namespace SquadInternal.Controllers
             await _db.SaveChangesAsync();
 
             return Json(new { success = true });
+        }
+        [AuthorizeAdmin]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditEmployee(
+    int id,
+    string firstName,
+    string lastName,
+    int roleId,
+    int? reportingToUserId,
+    DateTime? dateOfBirth,
+    DateTime? dateOfJoining,
+    string gender)
+        {
+            var employee = await _db.Employees
+                .Include(e => e.User)
+                .FirstOrDefaultAsync(e => e.Id == id);
+
+            if (employee == null)
+            {
+                TempData["Error"] = "Employee not found.";
+                return RedirectToAction("Employees");
+            }
+
+            // Update employee table
+            employee.FirstName = firstName;
+            employee.LastName = lastName;
+            employee.ReportingToUserId = reportingToUserId;
+            employee.DateOfBirth = dateOfBirth;
+            employee.DateOfJoining = dateOfJoining;
+            employee.Gender = gender;
+
+            // Update User table (role)
+            if (employee.User != null)
+            {
+                employee.User.Name = firstName + " " + lastName;
+                employee.User.RoleId = roleId;
+            }
+
+            await _db.SaveChangesAsync();
+
+            TempData["Success"] = "Employee updated successfully.";
+            return RedirectToAction("Employees");
         }
 
     }
