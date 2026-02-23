@@ -83,7 +83,7 @@ namespace SquadInternal.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Employees");
+                    b.ToTable("Employees", (string)null);
                 });
 
             modelBuilder.Entity("SquadInternal.Models.EmployeeDocument", b =>
@@ -119,7 +119,7 @@ namespace SquadInternal.Migrations
 
                     b.HasIndex("EmployeeId");
 
-                    b.ToTable("EmployeeDocuments");
+                    b.ToTable("EmployeeDocuments", (string)null);
                 });
 
             modelBuilder.Entity("SquadInternal.Models.EmployeeEducation", b =>
@@ -161,7 +161,7 @@ namespace SquadInternal.Migrations
 
                     b.HasIndex("EmployeeId");
 
-                    b.ToTable("EmployeeEducations");
+                    b.ToTable("EmployeeEducations", (string)null);
                 });
 
             modelBuilder.Entity("SquadInternal.Models.EmployeeLeave", b =>
@@ -207,7 +207,7 @@ namespace SquadInternal.Migrations
 
                     b.HasIndex("EmployeeId");
 
-                    b.ToTable("EmployeeLeaves");
+                    b.ToTable("EmployeeLeaves", (string)null);
                 });
 
             modelBuilder.Entity("SquadInternal.Models.Role", b =>
@@ -228,7 +228,7 @@ namespace SquadInternal.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Roles");
+                    b.ToTable("Roles", (string)null);
 
                     b.HasData(
                         new
@@ -282,7 +282,7 @@ namespace SquadInternal.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("SquadHolidays");
+                    b.ToTable("SquadHolidays", (string)null);
                 });
 
             modelBuilder.Entity("SquadInternal.Models.User", b =>
@@ -323,7 +323,7 @@ namespace SquadInternal.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("SquadInternal.Models.Employee", b =>

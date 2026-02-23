@@ -22,6 +22,9 @@ namespace SquadInternal.Models
 
         public DateTime CreatedDate { get; set; } = DateTime.Now;
 
+        public string? ResetOtp { get; set; }
+        public DateTime? OtpExpiry { get; set; }
+
 
 
 

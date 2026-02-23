@@ -47,7 +47,11 @@
                     </div>
 
                     <div class="mb-3 text-end">
-                        <a href="#" class="small text-primary">Forgot your password?</a>
+                        <a asp-controller="Account"
+                           asp-action="ForgotPassword"
+                           class="small text-primary">
+                            Forgot your password?
+                        </a>
                     </div>
 
                     <button type="submit" class="btn btn-unique w-100">Sign in</button>
