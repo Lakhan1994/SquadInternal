@@ -125,7 +125,13 @@ namespace SquadInternal.Controllers
         [HttpPost]
         public async Task<IActionResult> SendOtp(string email)
         {
-            var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
+            if (string.IsNullOrWhiteSpace(email))
+                return Json(new { success = false, message = "Email is required." });
+
+            email = email.Trim().ToLower();
+
+            var user = await _db.Users
+                .FirstOrDefaultAsync(u => u.Email != null && u.Email.ToLower() == email);
 
             if (user == null)
                 return Json(new { success = false, message = "Email not found." });
@@ -137,26 +143,30 @@ namespace SquadInternal.Controllers
 
             await _db.SaveChangesAsync();
 
-            try
-            {
-                await SendEmail(email, otp);
-                return Json(new { success = true });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { success = false, message = ex.Message });
-            }
+            await SendEmail(email, otp);
+
+            return Json(new { success = true });
         }
 
         [HttpPost]
         public async Task<IActionResult> VerifyOtp(string email, string otp)
         {
-            var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(otp))
+                return Json(new { success = false, message = "Invalid or expired OTP." });
 
-            if (user == null ||
-    user.ResetOtp != otp ||
-    user.OtpExpiry == null ||
-    user.OtpExpiry < DateTime.Now)
+            email = email.Trim().ToLower();
+            otp = otp.Trim();
+
+            var user = await _db.Users
+                .FirstOrDefaultAsync(u => u.Email != null && u.Email.ToLower() == email);
+
+            if (user == null)
+                return Json(new { success = false, message = "Invalid or expired OTP." });
+
+            if (user.ResetOtp != otp)
+                return Json(new { success = false, message = "Invalid or expired OTP." });
+
+            if (user.OtpExpiry == null || user.OtpExpiry < DateTime.Now)
                 return Json(new { success = false, message = "Invalid or expired OTP." });
 
             return Json(new { success = true });

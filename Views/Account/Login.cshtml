@@ -41,9 +41,20 @@
                         <input type="email" name="email" class="form-control" required />
                     </div>
 
-                    <div class="mb-3">
-                        <label>Password</label>
-                        <input type="password" name="password" class="form-control" required />
+                    <div class="mb-3 position-relative">
+                        <label class="form-label">Password</label>
+
+                        <input type="password"
+                               name="password"
+                               id="passwordInput"
+                               class="form-control pe-5"
+                               required />
+
+                        <i id="toggleIcon"
+                           class="bi bi-eye position-absolute"
+                           onclick="togglePassword()"
+                           style="right: 15px; top: 70%; transform: translateY(-50%); cursor: pointer;">
+                        </i>
                     </div>
 
                     <div class="mb-3 text-end">
@@ -60,3 +71,19 @@
         </div>
     </div>
 </div>
+<script>
+    function togglePassword() {
+        const password = document.getElementById("passwordInput");
+        const icon = document.getElementById("toggleIcon");
+
+        if (password.type === "password") {
+            password.type = "text";
+            icon.classList.remove("bi-eye");
+            icon.classList.add("bi-eye-slash");
+        } else {
+            password.type = "password";
+            icon.classList.remove("bi-eye-slash");
+            icon.classList.add("bi-eye");
+        }
+    }
+</script>
