@@ -18,11 +18,7 @@ namespace SquadInternal.Controllers
         private readonly AppDbContext _db;
         private readonly PasswordService _passwordService;
 
-        public AdminController(AppDbContext db, PasswordService passwordService)
-        {
-            _db = db;
-            _passwordService = passwordService;
-        }
+        
 
         // ================= SAFE HELPERS =================
 
@@ -322,11 +318,27 @@ namespace SquadInternal.Controllers
         public async Task<IActionResult> ApproveLeave(int id)
         {
             var leave = await _db.EmployeeLeaves.FindAsync(id);
-            if (leave == null) return RedirectToAction("LeaveApprovals");
+            if (leave == null)
+                return RedirectToAction("LeaveApprovals");
 
             leave.Status = "Approved";
             leave.ApprovedByUserId = HttpContext.Session.GetInt32("UserId");
+
             await _db.SaveChangesAsync();
+
+            // 🔥 Send email to employee
+            var employee = await _db.Employees
+                .Include(e => e.User)
+                .FirstOrDefaultAsync(e => e.Id == leave.EmployeeId);
+
+            if (employee?.User != null)
+            {
+                _emailService.SendEmail(
+                    employee.User.Email,
+                    "Leave Approved",
+                    $"Your leave from {leave.FromDate:d} to {leave.ToDate:d} has been approved."
+                );
+            }
 
             return RedirectToAction("LeaveManagement");
         }
@@ -341,6 +353,24 @@ namespace SquadInternal.Controllers
             leave.Status = "Rejected";
             leave.ApprovedByUserId = HttpContext.Session.GetInt32("UserId");
             await _db.SaveChangesAsync();
+            var employee = await _db.Employees
+    .Include(e => e.User)
+    .FirstOrDefaultAsync(e => e.Id == leave.EmployeeId);
+
+            if (employee != null)
+            {
+                _emailService.SendEmail(
+                    employee.User.Email,
+                    "Leave Rejected",
+                    $@"
+        <h3>Leave Rejected</h3>
+        <p>Your leave request from 
+        <strong>{leave.FromDate:dd-MMM-yyyy}</strong> to 
+        <strong>{leave.ToDate:dd-MMM-yyyy}</strong> 
+        has been rejected.</p>
+        "
+                );
+            }
 
             return RedirectToAction("LeaveManagement");
         }
@@ -853,6 +883,46 @@ namespace SquadInternal.Controllers
             TempData["Success"] = "Employee updated successfully.";
             return RedirectToAction("Employees");
         }
+
+        private readonly EmailService _emailService;
+
+        public AdminController(AppDbContext db,
+                               PasswordService passwordService,
+                               EmailService emailService)
+        {
+            _db = db;
+            _passwordService = passwordService;
+            _emailService = emailService;
+        }
+        [HttpGet]
+        public async Task<IActionResult> ApproveFromEmail(int id)
+        {
+            var leave = await _db.EmployeeLeaves.FindAsync(id);
+
+            if (leave == null)
+                return Content("Leave not found.");
+
+            leave.Status = "Approved";
+            await _db.SaveChangesAsync();
+
+            return Content("Leave Approved Successfully.");
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> RejectFromEmail(int id)
+        {
+            var leave = await _db.EmployeeLeaves.FindAsync(id);
+
+            if (leave == null)
+                return Content("Leave not found.");
+
+            leave.Status = "Rejected";
+            await _db.SaveChangesAsync();
+
+            return Content("Leave Rejected Successfully.");
+        }
+
+
 
     }
 }

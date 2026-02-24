@@ -19,6 +19,7 @@ namespace SquadInternal.Models
         [Required]
         public int UserId { get; set; }
 
+
         public int? AddedBy { get; set; }
 
         public int? ReportingToUserId { get; set; }
@@ -79,5 +80,8 @@ namespace SquadInternal.Models
 
         public ICollection<EmployeeEducation> Educations { get; set; }
             = new List<EmployeeEducation>();
+
+
     }
+
 }

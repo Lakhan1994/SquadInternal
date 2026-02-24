@@ -33,7 +33,7 @@ builder.Services.AddSession(options =>
 
 // Add Authentication (Required for proper middleware flow)
 builder.Services.AddAuthentication();
-
+builder.Services.AddScoped<EmailService>();
 var app = builder.Build();
 
 // ================= MIDDLEWARE =================
@@ -59,5 +59,7 @@ app.UseAuthorization();    // Then Authorization
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Account}/{action=Login}/{id?}");
+
+
 
 app.Run();

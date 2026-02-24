@@ -67,7 +67,7 @@
 <div class="modal fade" id="applyLeaveModal">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form id="leaveForm">
+            <form id="leaveForm" method="post">
                 @Html.AntiForgeryToken()
 
                 <div class="modal-header">
@@ -118,7 +118,7 @@
 
 <script>
     document.getElementById("leaveForm").addEventListener("submit", async function (e) {
-
+        this.querySelector("button[type='submit']").disabled = true;
         e.preventDefault();
 
         const formData = new FormData(this);
