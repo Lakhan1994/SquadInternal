@@ -365,6 +365,7 @@ namespace SquadInternal.Controllers
     .Include(e => e.User)
     .FirstOrDefaultAsync(e => e.Id == leave.EmployeeId);
 
+
             if (employee?.User != null)
             {
                 var body = _emailService.GetLeaveRejectedTemplate(
