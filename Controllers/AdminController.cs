@@ -333,10 +333,18 @@ namespace SquadInternal.Controllers
 
             if (employee?.User != null)
             {
+                var body = _emailService.GetLeaveApprovedTemplate(
+               employee.User.Email, // or employee.FirstName
+               leave.FromDate,
+               leave.ToDate,
+               leave.LeaveType,
+               leave.Reason
+ );
+
                 _emailService.SendEmail(
                     employee.User.Email,
                     "Leave Approved",
-                    $"Your leave from {leave.FromDate:d} to {leave.ToDate:d} has been approved."
+                    body
                 );
             }
 
@@ -357,18 +365,20 @@ namespace SquadInternal.Controllers
     .Include(e => e.User)
     .FirstOrDefaultAsync(e => e.Id == leave.EmployeeId);
 
-            if (employee != null)
+            if (employee?.User != null)
             {
+                var body = _emailService.GetLeaveRejectedTemplate(
+                employee.User.Email,
+              leave.FromDate,
+              leave.ToDate,
+              leave.LeaveType,
+              leave.Reason
+);
+
                 _emailService.SendEmail(
                     employee.User.Email,
                     "Leave Rejected",
-                    $@"
-        <h3>Leave Rejected</h3>
-        <p>Your leave request from 
-        <strong>{leave.FromDate:dd-MMM-yyyy}</strong> to 
-        <strong>{leave.ToDate:dd-MMM-yyyy}</strong> 
-        has been rejected.</p>
-        "
+                    body
                 );
             }
 
