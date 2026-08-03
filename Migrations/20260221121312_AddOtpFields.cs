@@ -11,17 +11,17 @@ namespace SquadInternal.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<DateTime>(
-                name: "OtpExpiry",
-                table: "Users",
-                type: "datetime2",
-                nullable: true);
+            migrationBuilder.Sql(@"
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE Name = N'OtpExpiry' AND Object_ID = Object_ID(N'Users'))
+                BEGIN
+                    ALTER TABLE [Users] ADD [OtpExpiry] datetime2 NULL;
+                END");
 
-            migrationBuilder.AddColumn<string>(
-                name: "ResetOtp",
-                table: "Users",
-                type: "nvarchar(max)",
-                nullable: true);
+            migrationBuilder.Sql(@"
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE Name = N'ResetOtp' AND Object_ID = Object_ID(N'Users'))
+                BEGIN
+                    ALTER TABLE [Users] ADD [ResetOtp] nvarchar(max) NULL;
+                END");
         }
 
         /// <inheritdoc />
