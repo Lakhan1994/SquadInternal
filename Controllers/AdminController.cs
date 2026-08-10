@@ -6,6 +6,7 @@ using SquadInternal.Models;
 using SquadInternal.Models.ViewModels;
 using SquadInternal.Services;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
@@ -61,17 +62,34 @@ namespace SquadInternal.Controllers
         [SessionAuthorize(SessionAuthMode.AnyLoggedInUser)]
         public async Task<IActionResult> Dashboard()
         {
+            int? roleId = HttpContext.Session.GetInt32("RoleId");
+            bool isAdmin = roleId == 1;
+
             ViewBag.EmployeeCount = await _db.Employees.CountAsync(e => e.IsActive);
             ViewBag.RoleCount = await _db.Roles.CountAsync(r => r.IsActive);
 
-            ViewBag.Holidays = await _db.SquadHolidays
+            var holidayDates = await _db.SquadHolidays
                 .Where(h => h.IsActive)
                 .Select(h => h.HolidayDate.Date)
+                .ToListAsync();
+
+            ViewBag.Holidays = holidayDates;
+
+            ViewBag.UpcomingHolidays = await _db.SquadHolidays
+                .Where(h => h.IsActive && h.HolidayDate.Date >= DateTime.Today)
+                .OrderBy(h => h.HolidayDate)
+                .Take(5)
                 .ToListAsync();
 
             ViewBag.Today = DateTime.Today;
 
             var employee = await GetCurrentEmployeeAsync();
+
+            if (isAdmin)
+            {
+                ViewBag.PendingLeaveCount = await _db.EmployeeLeaves
+                    .CountAsync(l => l.Status == "Pending");
+            }
 
             if (employee != null)
             {
@@ -82,6 +100,13 @@ namespace SquadInternal.Controllers
                 ViewBag.ApprovedLeaveDates = approvedLeaves
                     .SelectMany(l => ExpandDates(l.FromDate, l.ToDate))
                     .ToList();
+
+                ViewBag.MyPendingLeaveCount = await _db.EmployeeLeaves
+                    .CountAsync(l => l.EmployeeId == employee.Id && l.Status == "Pending");
+
+                ViewBag.MyApprovedLeaveCount = approvedLeaves.Count;
+
+                ViewBag.EmployeeName = employee.FullName;
             }
 
 
@@ -234,6 +259,7 @@ namespace SquadInternal.Controllers
                     {
                         EmployeeId = employee.Id,
                         Level = edu.Level,
+                        LevelOther = edu.Level == "Other" ? edu.LevelOther : null,
                         Stream = edu.Stream,
                         Institute = edu.Institute,
                         PassingYear = edu.PassingYear,
@@ -445,7 +471,7 @@ namespace SquadInternal.Controllers
             return RedirectToAction("ApplyLeave");
         }
 
-        public async Task<IActionResult> LeaveManagement(int? employeeId)
+        public async Task<IActionResult> LeaveManagement(int? employeeId, string? status, DateTime? fromDate, DateTime? toDate)
         {
             var leavesQuery = _db.EmployeeLeaves
                 .Include(l => l.Employee)
@@ -457,21 +483,37 @@ namespace SquadInternal.Controllers
 
             ViewBag.EmployeeList = employees;
             ViewBag.SelectedEmployeeId = employeeId;
+            ViewBag.SelectedStatus = status;
+            ViewBag.FromDate = fromDate?.ToString("yyyy-MM-dd");
+            ViewBag.ToDate = toDate?.ToString("yyyy-MM-dd");
 
             if (employeeId.HasValue)
             {
                 leavesQuery = leavesQuery.Where(l => l.EmployeeId == employeeId);
             }
 
-            var leaves = await leavesQuery.ToListAsync();
-
-            if (employeeId.HasValue)
+            if (fromDate.HasValue)
             {
-                ViewBag.TotalLeaves = leaves.Count;
-                ViewBag.ApprovedCount = leaves.Count(l => l.Status == "Approved");
-                ViewBag.PendingCount = leaves.Count(l => l.Status == "Pending");
-                ViewBag.RejectedCount = leaves.Count(l => l.Status == "Rejected");
+                leavesQuery = leavesQuery.Where(l => l.ToDate.Date >= fromDate.Value.Date);
             }
+
+            if (toDate.HasValue)
+            {
+                leavesQuery = leavesQuery.Where(l => l.FromDate.Date <= toDate.Value.Date);
+            }
+
+            var baseLeaves = await leavesQuery
+                .OrderByDescending(l => l.AppliedOn)
+                .ToListAsync();
+
+            ViewBag.TotalLeaves = baseLeaves.Count;
+            ViewBag.ApprovedCount = baseLeaves.Count(l => l.Status == "Approved");
+            ViewBag.PendingCount = baseLeaves.Count(l => l.Status == "Pending");
+            ViewBag.RejectedCount = baseLeaves.Count(l => l.Status == "Rejected");
+
+            var leaves = string.IsNullOrWhiteSpace(status)
+                ? baseLeaves
+                : baseLeaves.Where(l => l.Status == status).ToList();
 
             // 🔥 BLOCK ALREADY APPLIED LEAVE DATES FOR CURRENT USER
 
@@ -715,6 +757,171 @@ namespace SquadInternal.Controllers
             return RedirectToAction("LeaveManagement");
         }
 
+        [AuthorizeAdmin]
+        public async Task<IActionResult> MonthlySummary(int? month, int? year)
+        {
+            var selectedMonth = month ?? DateTime.Now.Month;
+            var selectedYear = year ?? DateTime.Now.Year;
+
+            ViewBag.SelectedMonth = selectedMonth;
+            ViewBag.SelectedYear = selectedYear;
+
+            var summary = await BuildMonthlySummaryAsync(selectedMonth, selectedYear);
+
+            return View(summary);
+        }
+
+        private async Task<List<MonthlySummaryRowVM>> BuildMonthlySummaryAsync(int month, int year)
+        {
+            var monthStart = new DateTime(year, month, 1);
+            var monthEnd = monthStart.AddMonths(1).AddDays(-1);
+            var daysInMonth = DateTime.DaysInMonth(year, month);
+
+            var employees = await _db.Employees
+                .Where(e => e.IsActive)
+                .OrderBy(e => e.FirstName)
+                .ToListAsync();
+
+            var leaves = await _db.EmployeeLeaves
+                .Where(l => l.Status == "Approved" &&
+                            l.FromDate.Date <= monthEnd &&
+                            l.ToDate.Date >= monthStart)
+                .ToListAsync();
+
+            var result = new List<MonthlySummaryRowVM>();
+
+            foreach (var emp in employees)
+            {
+                var empLeaves = leaves.Where(l => l.EmployeeId == emp.Id);
+
+                double totalLeaveDays = 0;
+                foreach (var leave in empLeaves)
+                {
+                    var overlapStart = leave.FromDate.Date < monthStart ? monthStart : leave.FromDate.Date;
+                    var overlapEnd = leave.ToDate.Date > monthEnd ? monthEnd : leave.ToDate.Date;
+
+                    if (overlapEnd >= overlapStart)
+                    {
+                        totalLeaveDays += (overlapEnd - overlapStart).Days + 1;
+                    }
+                }
+
+                var paidDays = daysInMonth - totalLeaveDays;
+                if (paidDays < 0) paidDays = 0;
+
+                result.Add(new MonthlySummaryRowVM
+                {
+                    EmployeeId = emp.Id,
+                    EmployeeName = $"{emp.FirstName} {emp.LastName}",
+                    TotalDaysInMonth = daysInMonth,
+                    TotalLeavesTaken = totalLeaveDays,
+                    TotalPaidDays = paidDays
+                });
+            }
+
+            return result;
+        }
+
+        [AuthorizeAdmin]
+        public async Task<IActionResult> DownloadMonthlySummary(int? month, int? year)
+        {
+            var selectedMonth = month ?? DateTime.Now.Month;
+            var selectedYear = year ?? DateTime.Now.Year;
+
+            var summary = await BuildMonthlySummaryAsync(selectedMonth, selectedYear);
+
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("Employee,TotalDaysInMonth,TotalLeavesTaken,TotalPaidDays");
+
+            static string Csv(string? value)
+            {
+                if (string.IsNullOrEmpty(value)) return string.Empty;
+                if (value.Contains(',') || value.Contains('"') || value.Contains('\n'))
+                {
+                    return "\"" + value.Replace("\"", "\"\"") + "\"";
+                }
+                return value;
+            }
+
+            foreach (var row in summary)
+            {
+                sb.AppendLine(string.Join(",", new[]
+                {
+                    Csv(row.EmployeeName),
+                    row.TotalDaysInMonth.ToString(),
+                    row.TotalLeavesTaken.ToString(),
+                    row.TotalPaidDays.ToString()
+                }));
+            }
+
+            var bytes = System.Text.Encoding.UTF8.GetPreamble()
+                .Concat(System.Text.Encoding.UTF8.GetBytes(sb.ToString()))
+                .ToArray();
+
+            var monthName = new DateTime(selectedYear, selectedMonth, 1).ToString("MMMM_yyyy");
+            var fileName = $"MonthlySummary_{monthName}.csv";
+            return File(bytes, "text/csv", fileName);
+        }
+
+        [AuthorizeAdmin]
+        public async Task<IActionResult> DownloadLeaveReport(int? employeeId, string? status, DateTime? fromDate, DateTime? toDate)
+        {
+            var leavesQuery = _db.EmployeeLeaves
+                .Include(l => l.Employee)
+                .AsQueryable();
+
+            if (employeeId.HasValue)
+                leavesQuery = leavesQuery.Where(l => l.EmployeeId == employeeId);
+
+            if (!string.IsNullOrWhiteSpace(status))
+                leavesQuery = leavesQuery.Where(l => l.Status == status);
+
+            if (fromDate.HasValue)
+                leavesQuery = leavesQuery.Where(l => l.ToDate.Date >= fromDate.Value.Date);
+
+            if (toDate.HasValue)
+                leavesQuery = leavesQuery.Where(l => l.FromDate.Date <= toDate.Value.Date);
+
+            var leaves = await leavesQuery
+                .OrderByDescending(l => l.AppliedOn)
+                .ToListAsync();
+
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("Employee,LeaveType,FromDate,ToDate,Status,Reason,AppliedOn");
+
+            static string Csv(string? value)
+            {
+                if (string.IsNullOrEmpty(value)) return string.Empty;
+                if (value.Contains(',') || value.Contains('"') || value.Contains('\n'))
+                {
+                    return "\"" + value.Replace("\"", "\"\"") + "\"";
+                }
+                return value;
+            }
+
+            foreach (var leave in leaves)
+            {
+                var employeeName = $"{leave.Employee?.FirstName} {leave.Employee?.LastName}".Trim();
+                sb.AppendLine(string.Join(",", new[]
+                {
+                    Csv(employeeName),
+                    Csv(leave.LeaveType),
+                    leave.FromDate.ToString("dd MMM yyyy"),
+                    leave.ToDate.ToString("dd MMM yyyy"),
+                    Csv(leave.Status),
+                    Csv(leave.Reason),
+                    leave.AppliedOn.ToString("dd MMM yyyy HH:mm")
+                }));
+            }
+
+            var bytes = System.Text.Encoding.UTF8.GetPreamble()
+                .Concat(System.Text.Encoding.UTF8.GetBytes(sb.ToString()))
+                .ToArray();
+
+            var fileName = $"LeaveReport_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+            return File(bytes, "text/csv", fileName);
+        }
+
         public IActionResult DownloadHolidayTemplate()
         {
             var filePath = Path.Combine(Directory.GetCurrentDirectory(),
@@ -772,6 +979,7 @@ namespace SquadInternal.Controllers
                 {
                     id = e.Id,
                     level = e.Level,
+                    levelOther = e.LevelOther,
                     stream = e.Stream,
                     institute = e.Institute,
                     passingYear = e.PassingYear,
@@ -795,6 +1003,7 @@ namespace SquadInternal.Controllers
             {
                 id = edu.Id,
                 level = edu.Level,
+                levelOther = edu.LevelOther,
                 stream = edu.Stream,
                 institute = edu.Institute,
                 passingYear = edu.PassingYear,
@@ -809,6 +1018,11 @@ namespace SquadInternal.Controllers
         {
             if (model == null)
                 return Json(new { success = false, message = "Invalid data" });
+
+            if (model.Level != "Other")
+            {
+                model.LevelOther = null;
+            }
 
             _db.EmployeeEducations.Add(model);
             await _db.SaveChangesAsync();
@@ -827,6 +1041,7 @@ namespace SquadInternal.Controllers
                 return NotFound();
 
             edu.Level = model.Level;
+            edu.LevelOther = model.Level == "Other" ? model.LevelOther : null;
             edu.Stream = model.Stream;
             edu.Institute = model.Institute;
             edu.PassingYear = model.PassingYear;
@@ -862,7 +1077,9 @@ namespace SquadInternal.Controllers
     int? reportingToUserId,
     DateTime? dateOfBirth,
     DateTime? dateOfJoining,
-    string gender)
+    string gender,
+    string? mobileNumber,
+    string? bloodGroup)
         {
             var employee = await _db.Employees
                 .Include(e => e.User)
@@ -881,6 +1098,8 @@ namespace SquadInternal.Controllers
             employee.DateOfBirth = dateOfBirth;
             employee.DateOfJoining = dateOfJoining;
             employee.Gender = gender;
+            employee.MobileNumber = string.IsNullOrWhiteSpace(mobileNumber) ? null : mobileNumber.Trim();
+            employee.BloodGroup = string.IsNullOrWhiteSpace(bloodGroup) ? null : bloodGroup.Trim();
 
             // Update User table (role)
             if (employee.User != null)
@@ -896,15 +1115,234 @@ namespace SquadInternal.Controllers
         }
 
         private readonly EmailService _emailService;
+        private readonly AzureBlobStorageService _blobStorageService;
 
         public AdminController(AppDbContext db,
                                PasswordService passwordService,
-                               EmailService emailService)
+                               EmailService emailService,
+                               AzureBlobStorageService blobStorageService)
         {
             _db = db;
             _passwordService = passwordService;
             _emailService = emailService;
+            _blobStorageService = blobStorageService;
         }
+
+        // ================= EMPLOYEE DOCUMENTS (ADMIN ONLY) =================
+
+        [AuthorizeAdmin]
+        [HttpGet]
+        public async Task<IActionResult> EmployeeDocuments(int employeeId)
+        {
+            var employee = await _db.Employees.FirstOrDefaultAsync(e => e.Id == employeeId);
+
+            if (employee == null)
+                return NotFound();
+
+            var documents = await _db.EmployeeDocuments
+                .Where(d => d.EmployeeId == employeeId)
+                .OrderByDescending(d => d.UploadedDate)
+                .ToListAsync();
+
+            ViewBag.Employee = employee;
+            ViewBag.DocumentTypes = DocumentTypes.All;
+
+            return PartialView("_EmployeeDocumentsPartial", documents);
+        }
+
+        [AuthorizeAdmin]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UploadEmployeeDocument(int employeeId, string documentType, string? documentTypeOther, IFormFile file)
+        {
+            bool isAjax = string.Equals(Request.Headers["X-Requested-With"], "XMLHttpRequest", StringComparison.OrdinalIgnoreCase);
+
+            var employee = await _db.Employees.FirstOrDefaultAsync(e => e.Id == employeeId);
+
+            if (employee == null)
+            {
+                if (isAjax) return Json(new { success = false, message = "Employee not found." });
+                TempData["Error"] = "Employee not found.";
+                return RedirectToAction("Employees");
+            }
+
+            if (file == null || file.Length == 0)
+            {
+                if (isAjax) return Json(new { success = false, message = "Please select a file to upload." });
+                TempData["Error"] = "Please select a file to upload.";
+                return RedirectToAction("Employees");
+            }
+
+            if (string.IsNullOrWhiteSpace(documentType))
+            {
+                if (isAjax) return Json(new { success = false, message = "Please select a document type." });
+                TempData["Error"] = "Please select a document type.";
+                return RedirectToAction("Employees");
+            }
+
+            if (documentType == "Other" && string.IsNullOrWhiteSpace(documentTypeOther))
+            {
+                if (isAjax) return Json(new { success = false, message = "Please specify the document type." });
+                TempData["Error"] = "Please specify the document type.";
+                return RedirectToAction("Employees");
+            }
+
+            var allowedExtensions = new[] { ".pdf", ".jpg", ".jpeg", ".png", ".doc", ".docx" };
+            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+
+            if (!allowedExtensions.Contains(extension))
+            {
+                if (isAjax) return Json(new { success = false, message = "Unsupported file type. Allowed: PDF, JPG, PNG, DOC, DOCX." });
+                TempData["Error"] = "Unsupported file type. Allowed: PDF, JPG, PNG, DOC, DOCX.";
+                return RedirectToAction("Employees");
+            }
+
+            const long maxFileSize = 10 * 1024 * 1024; // 10 MB
+            if (file.Length > maxFileSize)
+            {
+                if (isAjax) return Json(new { success = false, message = "File size must not exceed 10 MB." });
+                TempData["Error"] = "File size must not exceed 10 MB.";
+                return RedirectToAction("Employees");
+            }
+
+            var blobName = await _blobStorageService.UploadAsync(file, employeeId);
+
+            var document = new EmployeeDocument
+            {
+                EmployeeId = employeeId,
+                DocumentType = documentType,
+                DocumentTypeOther = documentType == "Other" ? documentTypeOther?.Trim() : null,
+                DocumentName = Path.GetFileName(file.FileName),
+                FilePath = blobName,
+                UploadedDate = DateTime.UtcNow
+            };
+
+            _db.EmployeeDocuments.Add(document);
+            await _db.SaveChangesAsync();
+
+            if (isAjax) return Json(new { success = true, message = "Document uploaded successfully." });
+
+            TempData["Success"] = "Document uploaded successfully.";
+            return RedirectToAction("Employees");
+        }
+
+        [AuthorizeAdmin]
+        [HttpGet]
+        public async Task<IActionResult> DownloadEmployeeDocument(int id)
+        {
+            var document = await _db.EmployeeDocuments.FindAsync(id);
+
+            if (document == null)
+                return NotFound();
+
+            var (content, contentType) = await _blobStorageService.DownloadAsync(document.FilePath);
+
+            return File(content, contentType, document.DocumentName);
+        }
+
+        [AuthorizeAdmin]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteEmployeeDocument(int id, int employeeId)
+        {
+            bool isAjax = string.Equals(Request.Headers["X-Requested-With"], "XMLHttpRequest", StringComparison.OrdinalIgnoreCase);
+
+            var document = await _db.EmployeeDocuments.FindAsync(id);
+
+            if (document == null)
+            {
+                if (isAjax) return Json(new { success = false, message = "Document not found." });
+                TempData["Error"] = "Document not found.";
+                return RedirectToAction("Employees");
+            }
+
+            await _blobStorageService.DeleteAsync(document.FilePath);
+
+            _db.EmployeeDocuments.Remove(document);
+            await _db.SaveChangesAsync();
+
+            if (isAjax) return Json(new { success = true, message = "Document deleted successfully." });
+
+            TempData["Success"] = "Document deleted successfully.";
+            return RedirectToAction("Employees");
+        }
+
+        // ================= EMPLOYEE PROFILE PICTURE (ADMIN ONLY) =================
+
+        [AuthorizeAdmin]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UploadProfilePicture(int employeeId, IFormFile file)
+        {
+            bool isAjax = string.Equals(Request.Headers["X-Requested-With"], "XMLHttpRequest", StringComparison.OrdinalIgnoreCase);
+
+            var employee = await _db.Employees.FirstOrDefaultAsync(e => e.Id == employeeId);
+
+            if (employee == null)
+            {
+                if (isAjax) return Json(new { success = false, message = "Employee not found." });
+                TempData["Error"] = "Employee not found.";
+                return RedirectToAction("Employees");
+            }
+
+            if (file == null || file.Length == 0)
+            {
+                if (isAjax) return Json(new { success = false, message = "Please select an image to upload." });
+                TempData["Error"] = "Please select an image to upload.";
+                return RedirectToAction("Employees");
+            }
+
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+
+            if (!allowedExtensions.Contains(extension))
+            {
+                if (isAjax) return Json(new { success = false, message = "Unsupported file type. Allowed: JPG, PNG, WEBP." });
+                TempData["Error"] = "Unsupported file type. Allowed: JPG, PNG, WEBP.";
+                return RedirectToAction("Employees");
+            }
+
+            const long maxFileSize = 5 * 1024 * 1024; // 5 MB
+            if (file.Length > maxFileSize)
+            {
+                if (isAjax) return Json(new { success = false, message = "Image size must not exceed 5 MB." });
+                TempData["Error"] = "Image size must not exceed 5 MB.";
+                return RedirectToAction("Employees");
+            }
+
+            var oldBlobName = employee.ProfilePicturePath;
+
+            var blobName = await _blobStorageService.UploadAsync(file, employeeId);
+            employee.ProfilePicturePath = blobName;
+
+            await _db.SaveChangesAsync();
+
+            if (!string.IsNullOrWhiteSpace(oldBlobName))
+            {
+                await _blobStorageService.DeleteAsync(oldBlobName);
+            }
+
+            if (isAjax) return Json(new { success = true, message = "Profile picture updated successfully.", url = Url.Action("GetProfilePicture", "Admin", new { employeeId }) });
+
+            TempData["Success"] = "Profile picture updated successfully.";
+            return RedirectToAction("Employees");
+        }
+
+        [AuthorizeAdmin]
+        [HttpGet]
+        public async Task<IActionResult> GetProfilePicture(int employeeId)
+        {
+            var employee = await _db.Employees.FirstOrDefaultAsync(e => e.Id == employeeId);
+
+            if (employee == null || string.IsNullOrWhiteSpace(employee.ProfilePicturePath))
+                return NotFound();
+
+            var (content, contentType) = await _blobStorageService.DownloadAsync(employee.ProfilePicturePath);
+
+            Response.Headers["Cache-Control"] = "no-cache";
+            return File(content, contentType);
+        }
+
         [HttpGet]
         public async Task<IActionResult> ApproveFromEmail(int id)
         {

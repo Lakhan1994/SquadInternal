@@ -6,11 +6,22 @@
 
     int? roleId = Context.Session.GetInt32("RoleId");
     bool isAdmin = roleId == 1;
+
+    string employeeName = ViewBag.EmployeeName ?? "";
+    var now = DateTime.Now;
+    string greeting = now.Hour < 12 ? "Good Morning" : (now.Hour < 17 ? "Good Afternoon" : "Good Evening");
 }
 
-<!-- HEADER WITH PROFILE ICON -->
-<div class="page-accent d-flex justify-content-between align-items-center">
-    <h3 class="m-0">Dashboard</h3>
+<!-- HERO HEADER -->
+<div class="dashboard-hero d-flex justify-content-between align-items-center flex-wrap gap-3">
+    <div>
+        <h3 class="mb-1">@greeting@(string.IsNullOrWhiteSpace(employeeName) ? "" : ", " + employeeName.Split(' ')[0]) 👋</h3>
+        <div class="hero-date">
+            <i class="bi bi-calendar3 me-1"></i> @now.ToString("dddd, dd MMMM yyyy")
+            &nbsp;·&nbsp;
+            <i class="bi bi-shield-check me-1"></i> @(isAdmin ? "Administrator" : "Employee")
+        </div>
+    </div>
 
     <div class="dropdown">
         <button class="btn btn-light rounded-circle"
@@ -43,56 +54,204 @@
     </div>
 </div>
 
-<div class="row mt-3 g-4">
-
+<!-- STAT CARDS -->
+<div class="row mt-4 g-3">
     @if (isAdmin)
     {
-        <div class="col-md-4">
-
-            <a asp-controller="Admin" asp-action="Employees"
-               class="text-decoration-none text-dark">
-                <div class="card shadow-sm border-0 p-4 dashboard-card pop-card mb-3">
-                    <div class="d-flex align-items-center">
-                        <div class="me-3 fs-1">👥</div>
-                        <div>
-                            <h6 class="mb-1">Employees</h6>
-                            <h2 class="mb-0">@ViewBag.EmployeeCount</h2>
-                        </div>
+        <div class="col-md-4 col-sm-6">
+            <a asp-controller="Admin" asp-action="Employees" class="text-decoration-none">
+                <div class="stat-card stat-card-blue d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-label">Employees</div>
+                        <div class="stat-value">@ViewBag.EmployeeCount</div>
                     </div>
+                    <i class="bi bi-people-fill stat-icon"></i>
                 </div>
             </a>
-
-            <a asp-controller="Admin" asp-action="Roles"
-               class="text-decoration-none text-dark">
-                <div class="card shadow-sm border-0 p-4 dashboard-card pop-card">
-                    <div class="d-flex align-items-center">
-                        <div class="me-3 fs-1">🏷️</div>
-                        <div>
-                            <h6 class="mb-1">Roles</h6>
-                            <h2 class="mb-0">@ViewBag.RoleCount</h2>
-                        </div>
-                    </div>
-                </div>
-            </a>
-
         </div>
 
-        <div class="col-md-8">
-            <div class="card shadow-sm border-0 dashboard-card p-3">
-                <h4 class="text-center mb-3">📅 Calendar</h4>
-                <div id="calendar"></div>
-            </div>
+        <div class="col-md-4 col-sm-6">
+            <a asp-controller="Admin" asp-action="Roles" class="text-decoration-none">
+                <div class="stat-card stat-card-purple d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-label">Roles</div>
+                        <div class="stat-value">@ViewBag.RoleCount</div>
+                    </div>
+                    <i class="bi bi-person-badge-fill stat-icon"></i>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-4 col-sm-6">
+            <a asp-controller="Admin" asp-action="LeaveManagement" class="text-decoration-none">
+                <div class="stat-card stat-card-orange d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-label">Pending Leaves</div>
+                        <div class="stat-value">@ViewBag.PendingLeaveCount</div>
+                    </div>
+                    <i class="bi bi-hourglass-split stat-icon"></i>
+                </div>
+            </a>
         </div>
     }
     else
     {
-        <div class="col-md-12">
-            <div class="card shadow-sm border-0 dashboard-card p-3">
-                <h4 class="text-center mb-3">📅 Calendar</h4>
-                <div id="calendar"></div>
-            </div>
+        <div class="col-md-4 col-sm-6">
+            <a asp-controller="Employee" asp-action="Leave" class="text-decoration-none">
+                <div class="stat-card stat-card-orange d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-label">Pending Requests</div>
+                        <div class="stat-value">@ViewBag.MyPendingLeaveCount</div>
+                    </div>
+                    <i class="bi bi-hourglass-split stat-icon"></i>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-4 col-sm-6">
+            <a asp-controller="Employee" asp-action="Leave" class="text-decoration-none">
+                <div class="stat-card stat-card-green d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-label">Approved Leaves</div>
+                        <div class="stat-value">@ViewBag.MyApprovedLeaveCount</div>
+                    </div>
+                    <i class="bi bi-check-circle-fill stat-icon"></i>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-4 col-sm-6">
+            <a asp-controller="Employee" asp-action="Profile" class="text-decoration-none">
+                <div class="stat-card stat-card-teal d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-label">My Profile</div>
+                        <div class="stat-value"><i class="bi bi-arrow-right-circle"></i></div>
+                    </div>
+                    <i class="bi bi-person-circle stat-icon"></i>
+                </div>
+            </a>
         </div>
     }
+</div>
+
+<!-- QUICK ACTIONS -->
+<div class="row mt-4 g-3">
+    <div class="col-12">
+        <h6 class="text-muted text-uppercase mb-2" style="letter-spacing:0.5px;font-size:12px;">Quick Actions</h6>
+    </div>
+
+    @if (isAdmin)
+    {
+        <div class="col-md-3 col-sm-6">
+            <a asp-controller="Admin" asp-action="Employees" class="quick-action-tile">
+                <div class="quick-action-icon"><i class="bi bi-person-plus"></i></div>
+                <div>
+                    <p class="quick-action-title">Manage Employees</p>
+                    <div class="quick-action-sub">Add / edit employee records</div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-3 col-sm-6">
+            <a asp-controller="Admin" asp-action="LeaveManagement" class="quick-action-tile">
+                <div class="quick-action-icon"><i class="bi bi-calendar-check"></i></div>
+                <div>
+                    <p class="quick-action-title">Leave Management</p>
+                    <div class="quick-action-sub">Approve or reject requests</div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-3 col-sm-6">
+            <a asp-controller="Admin" asp-action="Roles" class="quick-action-tile">
+                <div class="quick-action-icon"><i class="bi bi-person-badge"></i></div>
+                <div>
+                    <p class="quick-action-title">Roles</p>
+                    <div class="quick-action-sub">Manage access roles</div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-3 col-sm-6">
+            <a asp-controller="Admin" asp-action="Holidays" class="quick-action-tile">
+                <div class="quick-action-icon"><i class="bi bi-calendar-event"></i></div>
+                <div>
+                    <p class="quick-action-title">Holidays</p>
+                    <div class="quick-action-sub">Manage holiday calendar</div>
+                </div>
+            </a>
+        </div>
+    }
+    else
+    {
+        <div class="col-md-4 col-sm-6">
+            <a asp-controller="Employee" asp-action="Profile" class="quick-action-tile">
+                <div class="quick-action-icon"><i class="bi bi-person-circle"></i></div>
+                <div>
+                    <p class="quick-action-title">My Profile</p>
+                    <div class="quick-action-sub">View personal &amp; documents</div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-4 col-sm-6">
+            <a asp-controller="Employee" asp-action="Leave" class="quick-action-tile">
+                <div class="quick-action-icon"><i class="bi bi-calendar-plus"></i></div>
+                <div>
+                    <p class="quick-action-title">Apply Leave</p>
+                    <div class="quick-action-sub">Submit a new leave request</div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-4 col-sm-6">
+            <a asp-controller="Employee" asp-action="Leave" class="quick-action-tile">
+                <div class="quick-action-icon"><i class="bi bi-list-check"></i></div>
+                <div>
+                    <p class="quick-action-title">My Leaves</p>
+                    <div class="quick-action-sub">Track request status</div>
+                </div>
+            </a>
+        </div>
+    }
+</div>
+
+<!-- CALENDAR + UPCOMING HOLIDAYS -->
+<div class="row mt-4 g-4">
+
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0 dashboard-card p-3 h-100">
+            <h4 class="text-center mb-3">📅 Calendar</h4>
+            <div id="calendar"></div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card shadow-sm border-0 dashboard-card p-3 h-100">
+            <h6 class="mb-3"><i class="bi bi-calendar-event me-2"></i>Upcoming Holidays</h6>
+
+            @if (ViewBag.UpcomingHolidays != null && ((IEnumerable<SquadInternal.Models.SquadHoliday>)ViewBag.UpcomingHolidays).Any())
+            {
+                foreach (var holiday in (IEnumerable<SquadInternal.Models.SquadHoliday>)ViewBag.UpcomingHolidays)
+                {
+                    <div class="holiday-list-item">
+                        <div class="holiday-date-badge">
+                            @holiday.HolidayDate.ToString("dd")
+                            <small>@holiday.HolidayDate.ToString("MMM")</small>
+                        </div>
+                        <div>
+                            <div class="fw-semibold">@holiday.Name</div>
+                            <div class="text-muted" style="font-size:12px;">@holiday.HolidayDate.ToString("dddd")</div>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <p class="text-muted mb-0">No upcoming holidays.</p>
+            }
+        </div>
+    </div>
 
 </div>
 

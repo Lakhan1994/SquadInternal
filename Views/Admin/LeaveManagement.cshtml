@@ -7,20 +7,141 @@
     var employees = ViewBag.EmployeeList as List<SquadInternal.Models.Employee>;
     int? selectedId = ViewBag.SelectedEmployeeId as int?;
     var adminUserId = Context.Session.GetInt32("UserId");
+    string? selectedStatus = ViewBag.SelectedStatus as string;
+    string? fromDateVal = ViewBag.FromDate as string;
+    string? toDateVal = ViewBag.ToDate as string;
 }
 
-<div class="page-accent d-flex justify-content-between align-items-center">
-    <h3 class="m-0">Leave Management</h3>
-</div> 
+<style>
+    .leave-stat-card {
+        border: none;
+        border-radius: 14px;
+        padding: 1.1rem 1.25rem;
+        color: #fff;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 4px 14px rgba(0,0,0,.08);
+    }
+    .leave-stat-card .stat-icon {
+        position: absolute;
+        right: 14px;
+        top: 14px;
+        font-size: 2rem;
+        opacity: .35;
+    }
+    .leave-stat-card .stat-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+    .leave-stat-card .stat-label {
+        font-size: .85rem;
+        opacity: .9;
+        margin-top: .25rem;
+    }
+    .stat-total { background: linear-gradient(135deg,#4e73df,#3f5fc4); }
+    .stat-approved { background: linear-gradient(135deg,#1cc88a,#17a673); }
+    .stat-pending { background: linear-gradient(135deg,#f6c23e,#dda520); }
+    .stat-rejected { background: linear-gradient(135deg,#e74a3b,#c0392b); }
 
+    .filter-pill {
+        border-radius: 20px !important;
+        padding: .35rem 1rem;
+        font-size: .85rem;
+        font-weight: 500;
+    }
 
-<!-- ================= EMPLOYEE FILTER ================= -->
+    .leave-tabs .nav-link {
+        border: none;
+        border-bottom: 3px solid transparent;
+        border-radius: 0;
+        font-weight: 600;
+        color: #6c757d;
+        padding: .6rem 1.1rem;
+    }
+    .leave-tabs .nav-link.active {
+        color: #4e73df;
+        border-bottom-color: #4e73df;
+        background: transparent;
+    }
+
+    .leave-table thead th {
+        font-size: .78rem;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        color: #6c757d;
+        border-bottom-width: 1px;
+    }
+    .leave-table tbody tr:hover {
+        background-color: #f8f9fc;
+    }
+    .avatar-badge {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: #eef1fb;
+        color: #4e73df;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: .8rem;
+        margin-right: .5rem;
+    }
+</style>
+
+<div class="page-accent d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <h3 class="m-0"><i class="bi bi-calendar-check me-2"></i>Leave Management</h3>
+    <div class="d-flex gap-2">
+        <a class="btn btn-outline-info" asp-action="MonthlySummary">
+            <i class="bi bi-calendar-month"></i> Monthly Summary
+        </a>
+        <a class="btn btn-outline-success"
+           href="@Url.Action("DownloadLeaveReport", new { employeeId = selectedId, status = selectedStatus, fromDate = fromDateVal, toDate = toDateVal })">
+            <i class="bi bi-download"></i> Download Report
+        </a>
+    </div>
+</div>
+
+<!-- ================= STAT CARDS ================= -->
+<div class="row g-3 mt-1">
+    <div class="col-6 col-md-3">
+        <div class="leave-stat-card stat-total">
+            <i class="bi bi-list-check stat-icon"></i>
+            <div class="stat-value">@ViewBag.TotalLeaves</div>
+            <div class="stat-label">Total Requests</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="leave-stat-card stat-approved">
+            <i class="bi bi-check-circle stat-icon"></i>
+            <div class="stat-value">@ViewBag.ApprovedCount</div>
+            <div class="stat-label">Approved</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="leave-stat-card stat-pending">
+            <i class="bi bi-hourglass-split stat-icon"></i>
+            <div class="stat-value">@ViewBag.PendingCount</div>
+            <div class="stat-label">Pending</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="leave-stat-card stat-rejected">
+            <i class="bi bi-x-circle stat-icon"></i>
+            <div class="stat-value">@ViewBag.RejectedCount</div>
+            <div class="stat-label">Rejected</div>
+        </div>
+    </div>
+</div>
+
+<!-- ================= FILTERS ================= -->
 <div class="card shadow-sm border-0 p-3 mt-3">
     <form method="get">
-        <div class="row align-items-end">
+        <div class="row align-items-end g-2">
             <div class="col-md-4">
-                <label>Select Employee</label>
-                <select name="employeeId" class="form-control">
+                <label class="form-label small text-muted mb-1">Employee</label>
+                <select name="employeeId" class="form-select">
                     <option value="">-- All Employees --</option>
                     @if (employees != null)
                     {
@@ -33,42 +154,50 @@
                     }
                 </select>
             </div>
-            <div class="col-md-2">
-                <button class="btn btn-primary">Filter</button>
+            <div class="col-6 col-md-3">
+                <label class="form-label small text-muted mb-1">From Date</label>
+                <input type="date" name="fromDate" class="form-control" value="@fromDateVal" />
             </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label small text-muted mb-1">To Date</label>
+                <input type="date" name="toDate" class="form-control" value="@toDateVal" />
+            </div>
+            <input type="hidden" name="status" value="@selectedStatus" />
+            <div class="col-md-2">
+                <button class="btn btn-primary w-100">
+                    <i class="bi bi-funnel"></i> Filter
+                </button>
+            </div>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2 mt-3">
+            <a class="btn filter-pill @(string.IsNullOrEmpty(selectedStatus) ? "btn-secondary" : "btn-outline-secondary")"
+               href="@Url.Action("LeaveManagement", new { employeeId = selectedId, fromDate = fromDateVal, toDate = toDateVal })">
+                All Requests
+            </a>
+            <a class="btn filter-pill @(selectedStatus == "Pending" ? "btn-warning" : "btn-outline-warning")"
+               href="@Url.Action("LeaveManagement", new { employeeId = selectedId, status = "Pending", fromDate = fromDateVal, toDate = toDateVal })">
+                <i class="bi bi-hourglass-split"></i> Pending
+            </a>
+            <a class="btn filter-pill @(selectedStatus == "Approved" ? "btn-success" : "btn-outline-success")"
+               href="@Url.Action("LeaveManagement", new { employeeId = selectedId, status = "Approved", fromDate = fromDateVal, toDate = toDateVal })">
+                <i class="bi bi-check-circle"></i> Approved
+            </a>
+            <a class="btn filter-pill @(selectedStatus == "Rejected" ? "btn-danger" : "btn-outline-danger")"
+               href="@Url.Action("LeaveManagement", new { employeeId = selectedId, status = "Rejected", fromDate = fromDateVal, toDate = toDateVal })">
+                <i class="bi bi-x-circle"></i> Rejected
+            </a>
         </div>
     </form>
 </div>
 
-<!-- ================= LEAVE SUMMARY ================= -->
-@if (ViewBag.SelectedEmployeeId != null)
-{
-    <div class="card shadow-sm border-0 p-3 mt-3">
-        <h6>Leave Summary</h6>
-        <div class="row">
-            <div class="col-md-3">
-                <strong>Total:</strong> @ViewBag.TotalLeaves
-            </div>
-            <div class="col-md-3">
-                <span class="badge bg-success">Approved: @ViewBag.ApprovedCount</span>
-            </div>
-            <div class="col-md-3">
-                <span class="badge bg-warning text-dark">Pending: @ViewBag.PendingCount</span>
-            </div>
-            <div class="col-md-3">
-                <span class="badge bg-danger">Rejected: @ViewBag.RejectedCount</span>
-            </div>
-        </div>
-    </div>
-}
-
-<ul class="nav nav-tabs mt-4" role="tablist">
+<ul class="nav nav-tabs leave-tabs mt-4" role="tablist">
     <li class="nav-item">
         <button class="nav-link @(TempData["Error"] != null ? "" : "active")"
                 data-bs-toggle="tab"
                 data-bs-target="#approvals">
 
-            Leave Approvals
+            <i class="bi bi-card-checklist me-1"></i> Leave Approvals
         </button>
     </li>
     <li class="nav-item">
@@ -76,7 +205,8 @@
                 data-bs-toggle="tab"
                 data-bs-target="#myLeaves">
 
-            My Leaves
+            <i class="bi bi-person-lines-fill me-1"></i> My Leaves
+
         </button>
     </li>
    
@@ -89,13 +219,14 @@
 
         <div class="card shadow-sm border-0">
             <div class="table-responsive">
-                <table class="table table-hover">
+                <table class="table table-hover leave-table mb-0">
                     <thead class="table-light">
                         <tr>
                             <th>Employee</th>
                             <th>Type</th>
                             <th>From</th>
                             <th>To</th>
+                            <th>Days</th>
                             <th>Status</th>
                             <th style="width:170px;">Action</th>
                         </tr>
@@ -109,11 +240,18 @@
                                 : leave.Status == "Pending" ? "bg-warning text-dark"
                                 : "bg-danger";
 
+                                var initials = $"{leave.Employee?.FirstName?.FirstOrDefault()}{leave.Employee?.LastName?.FirstOrDefault()}".ToUpper();
+                                var totalDays = (leave.ToDate.Date - leave.FromDate.Date).Days + 1;
+
                                 <tr>
-                                    <td>@leave.Employee?.FirstName @leave.Employee?.LastName</td>
+                                    <td>
+                                        <span class="avatar-badge">@initials</span>
+                                        @leave.Employee?.FirstName @leave.Employee?.LastName
+                                    </td>
                                     <td>@leave.LeaveType</td>
                                     <td>@leave.FromDate.ToString("dd MMM yyyy")</td>
                                     <td>@leave.ToDate.ToString("dd MMM yyyy")</td>
+                                    <td>@totalDays</td>
                                     <td>
                                         <span class="badge @badgeClass">
                                             @leave.Status
@@ -125,22 +263,22 @@
                                             <form asp-action="ApproveLeave" method="post" class="d-inline">
                                                 @Html.AntiForgeryToken()
                                                 <input type="hidden" name="id" value="@leave.Id" />
-                                                <button class="btn btn-sm btn-success">
-                                                    ✔ 
+                                                <button class="btn btn-sm btn-success" title="Approve">
+                                                    <i class="bi bi-check-lg"></i>
                                                 </button>
                                             </form>
 
                                             <form asp-action="RejectLeave" method="post" class="d-inline">
                                                 @Html.AntiForgeryToken()
                                                 <input type="hidden" name="id" value="@leave.Id" />
-                                                <button class="btn btn-sm btn-danger">
-                                                    ✖ 
+                                                <button class="btn btn-sm btn-danger" title="Reject">
+                                                    <i class="bi bi-x-lg"></i>
                                                 </button>
                                             </form>
                                         }
                                         else
                                         {
-                                            <span class="text-muted">No Action</span>
+                                            <span class="text-muted small">No Action</span>
                                         }
                                     </td>
                                 </tr>
@@ -149,7 +287,8 @@
                         else
                         {
                             <tr>
-                                <td colspan="6" class="text-center text-muted">
+                                <td colspan="7" class="text-center text-muted py-4">
+                                    <i class="bi bi-inbox fs-3 d-block mb-2"></i>
                                     No leave requests found.
                                 </td>
                             </tr>
@@ -165,18 +304,18 @@
 
 
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="m-0">My Leave History</h5>
+            <h5 class="m-0"><i class="bi bi-clock-history me-1"></i>My Leave History</h5>
 
             <button class="btn btn-primary"
                     data-bs-toggle="modal"
                     data-bs-target="#adminApplyLeaveModal">
-                + Apply Leave
+                <i class="bi bi-plus-lg"></i> Apply Leave
             </button>
         </div>
 
         <div class="card shadow-sm border-0">
             <div class="table-responsive">
-                <table class="table table-hover mb-0">
+                <table class="table table-hover leave-table mb-0">
                     <thead class="table-light">
                         <tr>
                             <th>Type</th>
@@ -215,10 +354,14 @@
                                             <form asp-action="CancelLeave" method="post">
                                                 @Html.AntiForgeryToken()
                                                 <input type="hidden" name="id" value="@leave.Id" />
-                                                <button class="btn btn-sm btn-danger">
-                                                    Backout
+                                                <button class="btn btn-sm btn-outline-danger">
+                                                    <i class="bi bi-arrow-counterclockwise"></i> Backout
                                                 </button>
                                             </form>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">No Action</span>
                                         }
                                     </td>
                                 </tr>
@@ -227,7 +370,8 @@
                         else
                         {
                             <tr>
-                                <td colspan="5" class="text-center text-muted">
+                                <td colspan="5" class="text-center text-muted py-4">
+                                    <i class="bi bi-inbox fs-3 d-block mb-2"></i>
                                     No leaves applied yet.
                                 </td>
                             </tr>

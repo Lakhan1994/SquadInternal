@@ -24,12 +24,15 @@ namespace SquadInternal.Models
         [StringLength(50)]
         public string DocumentType { get; set; } = string.Empty;
 
+        [StringLength(100)]
+        public string? DocumentTypeOther { get; set; }
+
         [Required]
         [StringLength(150)]
         public string DocumentName { get; set; } = string.Empty;
 
         [Required]
-        [StringLength(300)]
+        [StringLength(500)]
         public string FilePath { get; set; } = string.Empty;
 
         public DateTime UploadedDate { get; set; } = DateTime.UtcNow;

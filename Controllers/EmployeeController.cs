@@ -16,13 +16,91 @@ namespace SquadInternal.Controllers
     {
         private readonly AppDbContext _db;
         private readonly EmailService _emailService;
+        private readonly AzureBlobStorageService _blobStorageService;
+       
 
-        public EmployeeController(AppDbContext db, EmailService emailService)
+        public EmployeeController(AppDbContext db, EmailService emailService, AzureBlobStorageService blobStorageService)
         {
             _db = db;
             _emailService = emailService;
+            _blobStorageService = blobStorageService;
+           
         }
 
+        // ================= MY PROFILE =================
+        public async Task<IActionResult> Profile()
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+
+            if (userId == null)
+                return RedirectToAction("Login", "Account");
+
+            var employee = await _db.Employees
+                .Include(e => e.User)
+                    .ThenInclude(u => u!.Role)
+                .Include(e => e.ReportingToUser)
+                .Include(e => e.Educations)
+                .FirstOrDefaultAsync(e => e.UserId == userId && e.IsActive);
+
+            if (employee == null)
+                return Content("Employee record not found. Please contact admin.");
+
+            var documents = await _db.EmployeeDocuments
+                .Where(d => d.EmployeeId == employee.Id)
+                .OrderBy(d => d.DocumentType)
+                .ToListAsync();
+
+            ViewBag.Documents = documents;
+
+            return View(employee);
+        }
+
+        // ================= DOWNLOAD MY DOCUMENT =================
+        public async Task<IActionResult> DownloadMyDocument(int id)
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+
+            if (userId == null)
+                return RedirectToAction("Login", "Account");
+
+            var employee = await _db.Employees
+                .FirstOrDefaultAsync(e => e.UserId == userId && e.IsActive);
+
+            if (employee == null)
+                return Content("Employee record not found.");
+
+            var document = await _db.EmployeeDocuments
+                .FirstOrDefaultAsync(d => d.Id == id && d.EmployeeId == employee.Id);
+
+            if (document == null)
+                return NotFound();
+
+            var (content, contentType) = await _blobStorageService.DownloadAsync(document.FilePath);
+
+            return File(content, contentType, document.DocumentName);
+        }
+
+        // ================= MY PROFILE PICTURE =================
+        public async Task<IActionResult> GetProfilePicture()
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+
+            if (userId == null)
+                return RedirectToAction("Login", "Account");
+
+            var employee = await _db.Employees
+                .FirstOrDefaultAsync(e => e.UserId == userId && e.IsActive);
+
+            if (employee == null || string.IsNullOrWhiteSpace(employee.ProfilePicturePath))
+                return NotFound();
+
+            var (content, contentType) = await _blobStorageService.DownloadAsync(employee.ProfilePicturePath);
+
+            Response.Headers["Cache-Control"] = "no-cache";
+            return File(content, contentType);
+        }
+
+        
         // ================= MY LEAVES =================
         public async Task<IActionResult> Leave()
         {

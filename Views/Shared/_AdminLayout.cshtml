@@ -35,6 +35,19 @@
                 </div>
             </div>
 
+            @{
+                var userId = Context.Session.GetInt32("UserId");
+                var userName = Context.Session.GetString("UserName") ?? "User";
+                string initials = "";
+                if (!string.IsNullOrWhiteSpace(userName)) {
+                    var parts = userName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 1) initials = parts[0].Length > 0 ? parts[0].Substring(0, 1).ToUpper() : "U";
+                    else initials = (parts[0].Substring(0,1) + parts[parts.Length-1].Substring(0,1)).ToUpper();
+                }
+            }
+
+           
+
             <ul class="nav flex-column pt-3">
 
                 <!-- Dashboard -->
@@ -79,6 +92,14 @@
                 <!-- EMPLOYEE MENU -->
                 @if (roleId == 2)
                 {
+                    <li class="nav-item mb-1">
+                        <a class="nav-link text-white @(currentAction == "Profile" ? "active-menu" : "")"
+                           asp-controller="Employee"
+                           asp-action="Profile">
+                            <i class="bi bi-person-circle me-2"></i> My Profile
+                        </a>
+                    </li>
+
                     <li class="nav-item mb-1">
                         <a class="nav-link text-white @(currentAction == "Leave" ? "active-menu" : "")"
                            asp-controller="Employee"

@@ -59,6 +59,15 @@ namespace SquadInternal.Models
         [StringLength(300)]
         public string? AppointmentLetterPath { get; set; }
 
+        [StringLength(500)]
+        public string? ProfilePicturePath { get; set; }
+
+        [StringLength(20)]
+        public string? BloodGroup { get; set; }
+
+        [StringLength(30)]
+        public string? MobileNumber { get; set; }
+
         public bool IsActive { get; set; } = true;
 
         public bool IsDeleted { get; set; } = false;

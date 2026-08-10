@@ -1,0 +1,213 @@
+@model SquadInternal.Models.Employee
+@{
+    ViewData["Title"] = "My Profile";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+
+    var documents = ViewBag.Documents as List<SquadInternal.Models.EmployeeDocument> ?? new List<SquadInternal.Models.EmployeeDocument>();
+    var initials = $"{Model.FirstName?.FirstOrDefault()}{Model.LastName?.FirstOrDefault()}".ToUpper();
+}
+
+<style>
+    .profile-header {
+        background: linear-gradient(135deg,#4e73df,#3f5fc4);
+        border-radius: 14px;
+        color: #fff;
+        padding: 1.75rem;
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        box-shadow: 0 4px 14px rgba(0,0,0,.08);
+    }
+    .profile-avatar {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        background: rgba(255,255,255,.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.7rem;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+    .info-card {
+        border: none;
+        border-radius: 14px;
+        box-shadow: 0 4px 14px rgba(0,0,0,.06);
+    }
+    .info-label {
+        font-size: .78rem;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        color: #6c757d;
+        margin-bottom: .15rem;
+    }
+    .info-value {
+        font-weight: 600;
+        color: #2c2c2c;
+    }
+    .section-title {
+        font-weight: 700;
+        color: #2c2c2c;
+    }
+    .doc-table thead th {
+        font-size: .78rem;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        color: #6c757d;
+    }
+</style>
+
+<div class="page-accent d-flex justify-content-between align-items-center">
+    <h3 class="m-0"><i class="bi bi-person-circle me-2"></i>My Profile</h3>
+</div>
+
+<!-- ================= PROFILE HEADER ================= -->
+<div class="profile-header mt-3">
+    <div class="profile-avatar">@initials</div>
+    <div>
+        <h4 class="mb-1">@Model.FullName</h4>
+        <div class="opacity-75">@Model.User?.Email</div>
+        <div class="opacity-75">@Model.User?.Role?.Name</div>
+    </div>
+</div>
+
+<!-- ================= PERSONAL DETAILS ================= -->
+<div class="card info-card mt-4 p-3">
+    <h6 class="section-title mb-3"><i class="bi bi-person-lines-fill me-2"></i>Personal Details</h6>
+    <div class="row g-3">
+        <div class="col-md-3 col-6">
+            <div class="info-label">First Name</div>
+            <div class="info-value">@Model.FirstName</div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="info-label">Last Name</div>
+            <div class="info-value">@Model.LastName</div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="info-label">Date of Birth</div>
+            <div class="info-value">@(Model.DateOfBirth?.ToString("dd MMM yyyy") ?? "-")</div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="info-label">Gender</div>
+            <div class="info-value">@(Model.Gender ?? "-")</div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="info-label">Email</div>
+            <div class="info-value">@Model.User?.Email</div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="info-label">Date of Joining</div>
+            <div class="info-value">@(Model.DateOfJoining?.ToString("dd MMM yyyy") ?? "-")</div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="info-label">Reporting To</div>
+            <div class="info-value">@(Model.ReportingToUser?.Name ?? "-")</div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="info-label">Status</div>
+            <div class="info-value">
+                <span class="badge @(Model.IsActive ? "bg-success" : "bg-secondary")">
+                    @(Model.IsActive ? "Active" : "Inactive")
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ================= EDUCATION DETAILS ================= -->
+<div class="card info-card mt-4 p-3">
+    <h6 class="section-title mb-3"><i class="bi bi-mortarboard me-2"></i>Education Details</h6>
+    <div class="table-responsive">
+        <table class="table table-hover doc-table mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Level</th>
+                    <th>Institute</th>
+                    <th>Board / University</th>
+                    <th>Stream</th>
+                    <th>Passing Year</th>
+                    <th>Percentage / CGPA</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Educations != null && Model.Educations.Any())
+                {
+                    foreach (var edu in Model.Educations)
+                    {
+                        var levelTitle = edu.Level == "Other" && !string.IsNullOrWhiteSpace(edu.LevelOther)
+                            ? edu.LevelOther
+                            : edu.Level;
+
+                        <tr>
+                            <td>@levelTitle</td>
+                            <td>@(edu.Institute ?? "-")</td>
+                            <td>@(edu.BoardOrUniversity ?? "-")</td>
+                            <td>@(edu.Stream ?? "-")</td>
+                            <td>@(edu.PassingYear?.ToString() ?? "-")</td>
+                            <td>@(edu.PercentageOrCGPA ?? "-")</td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-3">
+                            <i class="bi bi-inbox fs-4 d-block mb-1"></i>
+                            No education records found.
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ================= DOCUMENTS (VIEW ONLY) ================= -->
+<div class="card info-card mt-4 p-3 mb-4">
+    <h6 class="section-title mb-3"><i class="bi bi-file-earmark-text me-2"></i>My Documents</h6>
+    <div class="table-responsive">
+        <table class="table table-hover doc-table mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Document Type</th>
+                    <th>File Name</th>
+                    <th>Uploaded On</th>
+                    <th style="width:100px;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (documents.Any())
+                {
+                    foreach (var doc in documents)
+                    {
+                        var docTitle = doc.DocumentType == "Other" && !string.IsNullOrWhiteSpace(doc.DocumentTypeOther)
+                            ? doc.DocumentTypeOther
+                            : doc.DocumentType;
+
+                        <tr>
+                            <td>@docTitle</td>
+                            <td>@doc.DocumentName</td>
+                            <td>@doc.UploadedDate.ToLocalTime().ToString("dd MMM yyyy HH:mm")</td>
+                            <td>
+                                <a asp-action="DownloadMyDocument" asp-controller="Employee" asp-route-id="@doc.Id"
+                                   class="btn btn-sm btn-outline-primary" title="Download">
+                                    <i class="bi bi-download"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="4" class="text-center text-muted py-3">
+                            <i class="bi bi-inbox fs-4 d-block mb-1"></i>
+                            No documents uploaded yet.
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

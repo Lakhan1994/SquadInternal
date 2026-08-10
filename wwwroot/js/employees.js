@@ -1,7 +1,18 @@
 ﻿
 
-    // Global variable to store current employee ID
-    let currentEmployeeId = null;
+// Ensure a global currentEmployeeId exists for inline onclick handlers
+var currentEmployeeId = window.currentEmployeeId ?? null;
+
+// Prevent this file from initializing multiple times (double-binding handlers)
+if (window._employeesJsInitialized) {
+        // already initialized, avoid re-binding events
+        console.debug('employees.js: already initialized, skipping re-init');
+    } else {
+        window._employeesJsInitialized = true;
+
+        // Use the global currentEmployeeId variable (keeps inline handlers working)
+        currentEmployeeId = currentEmployeeId ?? null;
+        window.currentEmployeeId = currentEmployeeId;
    
     const maxYear = 2026; // Fixed maximum year
 
@@ -134,6 +145,10 @@
                     !(eduLevel.value === "Degree" || eduLevel.value === "Post Graduation")
                 );
             }
+            const otherDiv = document.getElementById("eduOtherLevelDiv");
+            if (otherDiv) {
+                otherDiv.classList.toggle("d-none", eduLevel.value !== "Other");
+            }
         });
     }
 
@@ -164,6 +179,7 @@
 window.addEducation = function () {
 
     const level = document.getElementById("eduLevel")?.value || "";
+    const otherLevel = document.getElementById("eduOtherLevel")?.value.trim() || "";
     const degreeDiv = document.getElementById("degreeDiv");
     const degreeName = document.getElementById("degreeName");
     const institute = document.getElementById("eduInstitute")?.value.trim() || "";
@@ -172,6 +188,11 @@ window.addEducation = function () {
 
     if (!level) {
         alert("Please select education level");
+        return;
+    }
+
+    if (level === "Other" && !otherLevel) {
+        alert("Please specify the education level");
         return;
     }
 
@@ -185,10 +206,11 @@ window.addEducation = function () {
         : "";
 
     const displayScore = formatScore(score);
+    const displayLevel = level === "Other" ? otherLevel : level;
 
     const row = `
         <tr>
-            <td>${escapeHtml(level)}</td>
+            <td>${escapeHtml(displayLevel)}</td>
             <td>${escapeHtml(stream) || "-"}</td>
             <td>${escapeHtml(institute)}</td>
             <td>${escapeHtml(year) || "-"}</td>
@@ -201,6 +223,7 @@ window.addEducation = function () {
             </td>
 
             <input type="hidden" name="Educations[${eduIndex}].Level" value="${escapeHtml(level)}" />
+            <input type="hidden" name="Educations[${eduIndex}].LevelOther" value="${escapeHtml(otherLevel)}" />
             <input type="hidden" name="Educations[${eduIndex}].Stream" value="${escapeHtml(stream)}" />
             <input type="hidden" name="Educations[${eduIndex}].Institute" value="${escapeHtml(institute)}" />
             <input type="hidden" name="Educations[${eduIndex}].PassingYear" value="${escapeHtml(year)}" />
@@ -215,6 +238,10 @@ window.addEducation = function () {
     document.getElementById("eduInstitute").value = "";
     document.getElementById("eduYear").value = "";
     document.getElementById("eduScore").value = "";
+    const eduOtherLevelInput = document.getElementById("eduOtherLevel");
+    if (eduOtherLevelInput) eduOtherLevelInput.value = "";
+    const eduOtherLevelDiv = document.getElementById("eduOtherLevelDiv");
+    if (eduOtherLevelDiv) eduOtherLevelDiv.classList.add("d-none");
     if (degreeName) degreeName.value = "";
 
     updateScoreType(document.getElementById("eduScore"), 'scoreTypeIndicator');
@@ -251,6 +278,10 @@ window.forceSubmitEmployeeForm = function ()
                     "d-none",
                     !(this.value === "Degree" || this.value === "Post Graduation")
                 );
+                const otherDiv = document.getElementById("empEditOtherLevelDiv");
+                if (otherDiv) {
+                    otherDiv.classList.toggle("d-none", this.value !== "Other");
+                }
             });
         }
 
@@ -264,6 +295,10 @@ window.forceSubmitEmployeeForm = function ()
                     "d-none",
                     !(this.value === "Degree" || this.value === "Post Graduation")
                 );
+                const otherDiv = document.getElementById("editEduOtherLevelDiv");
+                if (otherDiv) {
+                    otherDiv.classList.toggle("d-none", this.value !== "Other");
+                }
             });
         }
 
@@ -281,6 +316,8 @@ window.forceSubmitEmployeeForm = function ()
         const empEditEduYear = document.getElementById("empEditEduYear");
         const empEditEduScore = document.getElementById("empEditEduScore");
         const empEditDegreeDiv = document.getElementById("empEditDegreeDiv");
+        const empEditOtherLevel = document.getElementById("empEditOtherLevel");
+        const empEditOtherLevelDiv = document.getElementById("empEditOtherLevelDiv");
 
         if (empEditEduLevel) empEditEduLevel.value = "";
         if (empEditDegreeName) empEditDegreeName.value = "";
@@ -288,15 +325,18 @@ window.forceSubmitEmployeeForm = function ()
         if (empEditEduYear) empEditEduYear.value = "";
         if (empEditEduScore) empEditEduScore.value = "";
         if (empEditDegreeDiv) empEditDegreeDiv.classList.add("d-none");
+        if (empEditOtherLevel) empEditOtherLevel.value = "";
+        if (empEditOtherLevelDiv) empEditOtherLevelDiv.classList.add("d-none");
 
         // Reset score indicator
         updateScoreType(empEditEduScore, 'empEditScoreTypeIndicator');
     }
 
     // Open Edit Employee modal
-    function openEditEmployee(id, firstName, lastName, email, roleId, reportingToUserId, dateOfBirth, dateOfJoining, gender) {
-        // Set current employee ID
+    function openEditEmployee(id, firstName, lastName, email, roleId, reportingToUserId, dateOfBirth, dateOfJoining, gender, hasProfilePicture, initials, mobileNumber, bloodGroup) {
+        // Set current employee ID (global for inline handlers)
         currentEmployeeId = id;
+        window.currentEmployeeId = id;
 
         // Set form values
         document.getElementById("editId").value = id;
@@ -308,6 +348,25 @@ window.forceSubmitEmployeeForm = function ()
         document.getElementById("editDateOfBirth").value = dateOfBirth || '';
         document.getElementById("editDateOfJoining").value = dateOfJoining || '';
         document.getElementById("editGender").value = gender || '';
+        document.getElementById("editMobileNumber").value = mobileNumber || '';
+        document.getElementById("editBloodGroup").value = bloodGroup || '';
+
+        // Profile picture preview
+        const picPreview = document.getElementById("editProfilePicturePreview");
+        const picInitials = document.getElementById("editProfileInitials");
+        const picFileInput = document.getElementById("editProfilePictureFile");
+
+        if (picFileInput) picFileInput.value = '';
+
+        if (hasProfilePicture === true || hasProfilePicture === 'true') {
+            picPreview.src = `/Admin/GetProfilePicture?employeeId=${id}&t=${new Date().getTime()}`;
+            picPreview.style.display = 'inline-block';
+            picInitials.style.display = 'none';
+        } else {
+            picPreview.style.display = 'none';
+            picInitials.style.display = 'inline-flex';
+            picInitials.textContent = initials || '';
+        }
 
         // Clear education form
         clearEditEducationForm();
@@ -319,6 +378,73 @@ window.forceSubmitEmployeeForm = function ()
         const editModal = new bootstrap.Modal(document.getElementById("editEmployeeModal"));
         editModal.show();
     }
+
+    // Upload/replace profile picture for the employee being edited
+    async function uploadProfilePicture(file) {
+        if (!currentEmployeeId || !file) return;
+
+        const formData = new FormData();
+        formData.append("employeeId", currentEmployeeId);
+        formData.append("file", file);
+
+        const tokenInput = document.querySelector('#editEmployeeForm input[name="__RequestVerificationToken"]');
+        if (tokenInput) formData.append("__RequestVerificationToken", tokenInput.value);
+
+        try {
+            const response = await fetch("/Admin/UploadProfilePicture", {
+                method: "POST",
+                headers: { "X-Requested-With": "XMLHttpRequest" },
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                const picPreview = document.getElementById("editProfilePicturePreview");
+                const picInitials = document.getElementById("editProfileInitials");
+
+                picPreview.src = `/Admin/GetProfilePicture?employeeId=${currentEmployeeId}&t=${new Date().getTime()}`;
+                picPreview.style.display = 'inline-block';
+                picInitials.style.display = 'none';
+
+                if (typeof toastr !== 'undefined') {
+                    toastr.success(result.message || "Profile picture updated successfully.");
+                } else {
+                    alert(result.message || "Profile picture updated successfully.");
+                }
+
+                // Refresh the row avatar in the list without a full reload, if present
+                const rowImg = document.querySelector(`img.emp-avatar-img[data-employee-id="${currentEmployeeId}"]`);
+                if (rowImg) {
+                    rowImg.src = picPreview.src;
+                }
+            } else {
+                if (typeof toastr !== 'undefined') {
+                    toastr.error(result.message || "Failed to upload profile picture.");
+                } else {
+                    alert(result.message || "Failed to upload profile picture.");
+                }
+            }
+        } catch (err) {
+            console.error("Profile picture upload failed:", err);
+            if (typeof toastr !== 'undefined') {
+                toastr.error("Failed to upload profile picture.");
+            } else {
+                alert("Failed to upload profile picture.");
+            }
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const picFileInput = document.getElementById("editProfilePictureFile");
+        if (picFileInput) {
+            picFileInput.addEventListener("change", function () {
+                if (this.files && this.files[0]) {
+                    uploadProfilePicture(this.files[0]);
+                }
+            });
+        }
+    });
 
     // Add education to existing employee (for Edit modal)
     async function addEducationToEmployee() {
@@ -333,6 +459,7 @@ window.forceSubmitEmployeeForm = function ()
         }
 
         const level = document.getElementById("empEditEduLevel")?.value;
+        const otherLevel = document.getElementById("empEditOtherLevel")?.value.trim() || "";
         const degree = document.getElementById("empEditDegreeName")?.value || "";
         const institute = document.getElementById("empEditEduInstitute")?.value;
         const year = document.getElementById("empEditEduYear")?.value;
@@ -346,6 +473,11 @@ window.forceSubmitEmployeeForm = function ()
             return;
         }
 
+        if (level === "Other" && !otherLevel) {
+            alert("Please specify the education level");
+            return;
+        }
+
         if (!institute || institute.trim() === "") {
             alert("Please enter institute name");
             return;
@@ -354,6 +486,7 @@ window.forceSubmitEmployeeForm = function ()
         const data = {
             EmployeeId: parseInt(employeeId),
             Level: level,
+            LevelOther: otherLevel,
             Stream: degree,
             Institute: institute.trim(),
             PassingYear: year ? parseInt(year) : null,
@@ -436,6 +569,49 @@ window.forceSubmitEmployeeForm = function ()
         }
     }
 
+    // Simple in-flight / cache to avoid duplicate concurrent requests for same employee
+    const _eduRequests = {};
+
+    // Helper to render education rows into tbody
+    function renderEducationRows(data, tbody) {
+        tbody.innerHTML = "";
+
+        if (!data || data.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-muted text-center">
+                        No education records
+                    </td>
+                </tr>`;
+            return;
+        }
+
+        data.forEach(e => {
+            // Format score for display
+            const displayScore = formatScore(e.percentageOrCGPA);
+            const displayLevel = e.level === "Other" && e.levelOther ? e.levelOther : e.level;
+
+            tbody.innerHTML += `
+            <tr>
+                <td>${escapeHtml(displayLevel) || '-'}</td>
+                <td>${escapeHtml(e.stream) || '-'}</td>
+                <td>${escapeHtml(e.institute) || '-'}</td>
+                <td>${escapeHtml(e.passingYear) || '-'}</td>
+                <td>${displayScore}</td>
+                <td class="text-nowrap">
+                    <button type="button"
+                            class="btn btn-sm btn-outline-primary me-1"
+                            onclick="openEditEducationById(${e.id})">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteEducation(${e.id})">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>`;
+        });
+    }
+
     // Load employee educations
     async function loadEmployeeEducations(employeeId) {
         const tbody = document.getElementById("editEducationTable");
@@ -444,14 +620,31 @@ window.forceSubmitEmployeeForm = function ()
         tbody.innerHTML = '<tr><td colspan="6" class="text-muted text-center">Loading...</td></tr>';
 
         try {
-            const response = await fetch(`/Admin/GetEmployeeEducations?employeeId=${employeeId}`);
-
-            if (!response.ok) {
-                throw new Error(`Failed to load: ${response.status}`);
+            // If there's already an in-flight request for this employee, reuse it
+            if (_eduRequests[employeeId]) {
+                const data = await _eduRequests[employeeId];
+                console.log("Education data received (cached):", data);
+                renderEducationRows(data, tbody);
+                return;
             }
 
-            const data = await response.json();
+            _eduRequests[employeeId] = (async () => {
+                const response = await fetch(`/Admin/GetEmployeeEducations?employeeId=${employeeId}`);
+
+                if (!response.ok) {
+                    throw new Error(`Failed to load: ${response.status}`);
+                }
+
+                const data = await response.json();
+                return data;
+            })();
+
+            const data = await _eduRequests[employeeId];
             console.log("Education data received:", data);
+            // clean up cache entry
+            delete _eduRequests[employeeId];
+
+            renderEducationRows(data, tbody);
 
             tbody.innerHTML = "";
 
@@ -468,10 +661,11 @@ window.forceSubmitEmployeeForm = function ()
             data.forEach(e => {
                 // Format score for display
                 const displayScore = formatScore(e.percentageOrCGPA);
+                const displayLevel = e.level === "Other" && e.levelOther ? e.levelOther : e.level;
 
                 tbody.innerHTML += `
                 <tr>
-                    <td>${escapeHtml(e.level) || '-'}</td>
+                    <td>${escapeHtml(displayLevel) || '-'}</td>
                     <td>${escapeHtml(e.stream) || '-'}</td>
                     <td>${escapeHtml(e.institute) || '-'}</td>
                     <td>${escapeHtml(e.passingYear) || '-'}</td>
@@ -527,6 +721,14 @@ window.forceSubmitEmployeeForm = function ()
         document.getElementById("editEduYear").value = edu.passingYear || '';
         document.getElementById("editEduScore").value = edu.percentageOrCGPA || '';
 
+        const editEduOtherLevel = document.getElementById("editEduOtherLevel");
+        if (editEduOtherLevel) editEduOtherLevel.value = edu.levelOther || '';
+
+        const editEduOtherLevelDiv = document.getElementById("editEduOtherLevelDiv");
+        if (editEduOtherLevelDiv) {
+            editEduOtherLevelDiv.classList.toggle("d-none", edu.level !== "Other");
+        }
+
         // Handle degree/stream field
         const editEduDegreeName = document.getElementById("editEduDegreeName");
         if (editEduDegreeName && edu.stream) {
@@ -559,15 +761,22 @@ window.forceSubmitEmployeeForm = function ()
         const institute = document.getElementById("editEduInstitute").value.trim();
         const year = document.getElementById("editEduYear").value;
         const score = document.getElementById("editEduScore").value;
+        const otherLevel = document.getElementById("editEduOtherLevel")?.value.trim() || "";
 
         if (!level || !institute) {
             alert("Please fill all required fields");
             return;
         }
 
+        if (level === "Other" && !otherLevel) {
+            alert("Please specify the education level");
+            return;
+        }
+
         const data = {
             Id: parseInt(id),
             Level: level,
+            LevelOther: otherLevel,
             Stream: degree,
             Institute: institute,
             PassingYear: year ? parseInt(year) : null,
@@ -661,6 +870,140 @@ window.forceSubmitEmployeeForm = function ()
         });
     }
 
+    /* =========================================================
+       EDIT EMPLOYEE -> DOCUMENTS TAB
+       ========================================================= */
+
+    window.loadEmployeeDocuments = function (employeeId) {
+        const body = document.getElementById('editEmployeeDocumentsBody');
+        if (!body || !employeeId) return;
+
+        body.innerHTML = '<div class="text-center text-muted py-4">Loading...</div>';
+
+        fetch('/Admin/EmployeeDocuments?employeeId=' + encodeURIComponent(employeeId))
+            .then(function (response) {
+                if (!response.ok) throw new Error('Failed to load documents.');
+                return response.text();
+            })
+            .then(function (html) {
+                body.innerHTML = html;
+
+                const docTypeSelect = body.querySelector('#docType');
+                if (docTypeSelect) {
+                    docTypeSelect.addEventListener('change', function () {
+                        const otherDiv = body.querySelector('#docTypeOtherDiv');
+                        if (otherDiv) {
+                            otherDiv.classList.toggle('d-none', this.value !== 'Other');
+                        }
+                    });
+                }
+            })
+            .catch(function () {
+                body.innerHTML = '<div class="alert alert-danger">Unable to load documents.</div>';
+            });
+    };
+
+    window.uploadEmployeeDocument = function () {
+        const body = document.getElementById('editEmployeeDocumentsBody');
+        if (!body) return;
+
+        const employeeId = body.querySelector('#docEmployeeId')?.value;
+        const documentType = body.querySelector('#docType')?.value;
+        const documentTypeOther = body.querySelector('#docTypeOther')?.value.trim() || '';
+        const fileInput = body.querySelector('#docFile');
+        const file = fileInput?.files?.[0];
+        const uploadBtn = body.querySelector('#docUploadBtn');
+
+        if (!employeeId) {
+            alert('No employee selected. Please refresh and try again.');
+            return;
+        }
+
+        if (!documentType) {
+            alert('Please select a document type.');
+            return;
+        }
+
+        if (documentType === 'Other' && !documentTypeOther) {
+            alert('Please specify the document type.');
+            return;
+        }
+
+        if (!file) {
+            alert('Please select a file to upload.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('employeeId', employeeId);
+        formData.append('documentType', documentType);
+        formData.append('documentTypeOther', documentTypeOther);
+        formData.append('file', file);
+
+        const token = body.querySelector('input[name="__RequestVerificationToken"]')?.value;
+
+        const originalText = uploadBtn ? uploadBtn.innerHTML : '';
+        if (uploadBtn) {
+            uploadBtn.disabled = true;
+            uploadBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+        }
+
+        fetch('/Admin/UploadEmployeeDocument', {
+            method: 'POST',
+            headers: {
+                'RequestVerificationToken': token || '',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: formData
+        })
+            .then(function (response) { return response.json(); })
+            .then(function (result) {
+                if (result && result.success) {
+                    showToast(result.message || 'Document uploaded successfully', 'success');
+                    loadEmployeeDocuments(employeeId);
+                } else {
+                    alert(result?.message || 'Failed to upload document.');
+                }
+            })
+            .catch(function () {
+                alert('Failed to upload document.');
+            })
+            .finally(function () {
+                if (uploadBtn) {
+                    uploadBtn.disabled = false;
+                    uploadBtn.innerHTML = originalText;
+                }
+            });
+    };
+
+    window.deleteEmployeeDocument = function (id, employeeId) {
+        if (!confirm('Are you sure you want to delete this document?')) return;
+
+        const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+
+        fetch('/Admin/DeleteEmployeeDocument', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'RequestVerificationToken': token || '',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: 'id=' + encodeURIComponent(id) + '&employeeId=' + encodeURIComponent(employeeId)
+        })
+            .then(function (response) { return response.json(); })
+            .then(function (result) {
+                if (result && result.success) {
+                    showToast(result.message || 'Document deleted successfully', 'success');
+                    loadEmployeeDocuments(employeeId);
+                } else {
+                    alert(result?.message || 'Failed to delete document.');
+                }
+            })
+            .catch(function () {
+                alert('Failed to delete document.');
+            });
+    };
+
     // Helper function to show toast notifications
     function showToast(message, type = 'info') {
         // Create toast container if it doesn't exist
@@ -725,3 +1068,4 @@ document.addEventListener("change", function (e) {
 
 });
 
+}

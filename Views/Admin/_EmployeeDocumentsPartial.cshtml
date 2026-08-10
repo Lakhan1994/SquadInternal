@@ -1,0 +1,87 @@
+@model List<SquadInternal.Models.EmployeeDocument>
+@{
+    var employee = ViewBag.Employee as SquadInternal.Models.Employee;
+    var documentTypes = ViewBag.DocumentTypes as string[] ?? System.Array.Empty<string>();
+}
+
+<div class="mb-3">
+    <h6 class="mb-1">@employee?.FullName</h6>
+    <small class="text-muted">Onboarding Documents</small>
+</div>
+
+<div class="row g-2 align-items-end mb-4">
+    @Html.AntiForgeryToken()
+    <input type="hidden" id="docEmployeeId" value="@employee?.Id" />
+
+    <div class="col-md-3">
+        <label class="form-label">Document Type</label>
+        <select id="docType" class="form-select" required>
+            <option value="">-- Select --</option>
+            @foreach (var type in documentTypes)
+            {
+                <option value="@type">@type</option>
+            }
+        </select>
+    </div>
+
+    <div class="col-md-3 d-none" id="docTypeOtherDiv">
+        <label class="form-label">Specify Document Type</label>
+        <input id="docTypeOther" class="form-control" placeholder="Enter document type" />
+    </div>
+
+    <div class="col-md-4">
+        <label class="form-label">File</label>
+        <input type="file" id="docFile" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" required />
+    </div>
+
+    <div class="col-md-2">
+        <button type="button" id="docUploadBtn" class="btn btn-primary w-100" onclick="uploadEmployeeDocument()">Upload</button>
+    </div>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-sm table-hover mb-0">
+        <thead class="table-light">
+            <tr>
+                <th>Document Type</th>
+                <th>File Name</th>
+                <th>Uploaded On</th>
+                <th style="width:120px;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model == null || Model.Count == 0)
+            {
+                <tr>
+                    <td colspan="4" class="text-center text-muted">No documents uploaded yet.</td>
+                </tr>
+            }
+            else
+            {
+                foreach (var doc in Model)
+                {
+                    var docTitle = doc.DocumentType == "Other" && !string.IsNullOrWhiteSpace(doc.DocumentTypeOther)
+                        ? doc.DocumentTypeOther
+                        : doc.DocumentType;
+                    <tr>
+                        <td>@docTitle</td>
+                        <td>@doc.DocumentName</td>
+                        <td>@doc.UploadedDate.ToLocalTime().ToString("dd-MMM-yyyy HH:mm")</td>
+                        <td>
+                            <a asp-action="DownloadEmployeeDocument" asp-controller="Admin" asp-route-id="@doc.Id"
+                               class="btn btn-sm btn-outline-primary me-1" title="Download">
+                                <i class="bi bi-download"></i>
+                            </a>
+
+                            <button type="button" class="btn btn-sm btn-outline-danger"
+                                    title="Delete"
+                                    onclick="deleteEmployeeDocument(@doc.Id, @doc.EmployeeId)">
+                                <i class="bi bi-trash3"></i>
+                            </button>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+</div>
