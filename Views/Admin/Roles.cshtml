@@ -1,17 +1,177 @@
-﻿
-@model List<SquadInternal.Models.Role>
+﻿@model List<SquadInternal.Models.Role>
 
 @{
     ViewData["Title"] = "Roles";
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
 }
 
+<style>
+    /* Custom styles for Roles page */
+    .roles-accent {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 0 16px 0;
+    }
+    
+    .roles-accent h3 {
+        font-weight: 700;
+        color: #2c3e50;
+        margin: 0;
+    }
+    
+    .btn-unique {
+        border-radius: 8px;
+        font-weight: 600;
+        padding: 10px 24px;
+        background: linear-gradient(135deg, #6674f6 0%, #4d5bd4 100%);
+        color: #ffffff;
+        border: none;
+        box-shadow: 0 4px 12px rgba(77, 91, 212, 0.3);
+        transition: all 0.2s ease;
+    }
+    
+    .btn-unique:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(77, 91, 212, 0.4);
+        color: #ffffff;
+    }
+    
+    .btn-unique:active {
+        transform: translateY(0);
+    }
+    
+    .card {
+        border-radius: 12px !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06) !important;
+        border: none !important;
+        overflow: hidden;
+    }
+    
+    .table {
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    
+    .table thead th {
+        background: #f8f9fa;
+        font-weight: 700;
+        color: #2c3e50;
+        border-bottom: 2px solid #e2e8f0;
+        padding: 14px 16px;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .table tbody td {
+        padding: 12px 16px;
+        vertical-align: middle;
+        border-bottom: 1px solid #f0f2f5;
+    }
+    
+    .table tbody tr:hover {
+        background: #f8f9ff;
+    }
+    
+    .table-striped tbody tr:nth-of-type(odd) {
+        background-color: #fafbff;
+    }
+    
+    .modal-content {
+        border-radius: 16px !important;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15) !important;
+        border: none !important;
+    }
+    
+    .modal-header {
+        border-bottom: 2px solid #f0f2f5;
+        padding: 20px 28px;
+        background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
+        border-radius: 16px 16px 0 0;
+    }
+    
+    .modal-title {
+        font-weight: 700;
+        color: #2c3e50;
+        font-size: 1.25rem;
+    }
+    
+    .modal-body {
+        padding: 28px;
+    }
+    
+    .modal-footer {
+        border-top: 2px solid #f0f2f5;
+        padding: 16px 28px;
+        background: #f8f9fa;
+        border-radius: 0 0 16px 16px;
+    }
+    
+    .form-control {
+        border-radius: 8px;
+        border: 1.5px solid #e2e8f0;
+        padding: 10px 14px;
+        transition: all 0.2s ease;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+    
+    .form-control:focus {
+        border-color: #4d5bd4;
+        box-shadow: 0 0 0 4px rgba(77, 91, 212, 0.12);
+    }
+    
+    .btn-outline-primary {
+        border-radius: 8px;
+        font-weight: 600;
+        padding: 6px 12px;
+        border: 1.5px solid #4d5bd4;
+        color: #4d5bd4;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-outline-primary:hover {
+        background: #4d5bd4;
+        color: #ffffff;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(77, 91, 212, 0.3);
+    }
+    
+    .btn-outline-danger {
+        border-radius: 8px;
+        font-weight: 600;
+        padding: 6px 12px;
+        border: 1.5px solid #dc3545;
+        color: #dc3545;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-outline-danger:hover {
+        background: #dc3545;
+        color: #ffffff;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+    }
+    
+    .btn-light {
+        border-radius: 8px;
+        font-weight: 600;
+        padding: 10px 24px;
+        border: 1.5px solid #e2e8f0;
+    }
+    
+    .btn-light:hover {
+        background: #f8f9fa;
+        border-color: #cbd5e0;
+    }
+</style>
+
 <!-- Header -->
 <div class="roles-accent">
     <h3>Roles</h3>
 
     <button class="btn btn-unique" data-bs-toggle="modal" data-bs-target="#addRoleModal">
-        + Add
+        <i class="bi bi-plus-lg me-1"></i> Add
     </button>
 </div>
 
@@ -21,9 +181,9 @@
         <table class="table table-striped mb-0">
             <thead class="table-light">
                 <tr>
-                    <th style="width:100px;">Sr.No</th>
+                    <th style="width:80px;">Sr. No</th>
                     <th>Role Name</th>
-                    <th style="width:220px;">Action</th>
+                    <th style="width:180px;" class="text-center">Action</th>
                 </tr>
             </thead>
             <tbody>
@@ -37,15 +197,16 @@
                         <!-- ✅ Showing Row Number Instead of DB Id -->
                         <td>@rowNumber</td>
 
-                        <td>@role.Name</td>
+                        <td><strong>@role.Name</strong></td>
 
-                        <td>
+                        <td class="text-center">
                             <!-- EDIT BUTTON -->
-                            <button class="btn btn-sm btn-outline-primary me-2"
+                            <button class="btn btn-sm btn-outline-primary me-1"
                                     data-bs-toggle="modal"
                                     data-bs-target="#editRoleModal"
                                     data-role-id="@role.Id"
-                                    data-role-name="@role.Name">
+                                    data-role-name="@role.Name"
+                                    title="Edit Role">
                                 <i class="bi bi-pencil-square"></i>
                             </button>
 
@@ -57,7 +218,9 @@
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@role.Id" />
                                 <button type="submit"
-                                        class="btn btn-sm btn-outline-danger">
+                                        class="btn btn-sm btn-outline-danger"
+                                        title="Delete Role"
+                                        onclick="return confirm('Are you sure you want to delete this role?');">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </form>
@@ -73,33 +236,42 @@
 
 <!-- ADD ROLE MODAL -->
 <div class="modal fade" id="addRoleModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <form asp-controller="Admin" asp-action="AddRole" method="post">
                 @Html.AntiForgeryToken()
 
                 <div class="modal-header">
-                    <h5 class="modal-title">+Add</h5>
+                    <h5 class="modal-title">
+                        <i class="bi bi-plus-circle me-2 text-primary"></i>
+                        Add New Role
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
 
                 <div class="modal-body">
-                    <input name="name"
-                           class="form-control"
-                           placeholder="Enter role name"
-                           required />
+                    <div class="mb-3">
+                        <label class="form-label">Role Name <span class="required-star">*</span></label>
+                        <input name="name"
+                               class="form-control"
+                               placeholder="Enter role name"
+                               required 
+                               minlength="2" 
+                               maxlength="50" />
+                        <small class="text-muted">Role name must be between 2-50 characters.</small>
+                    </div>
                 </div>
 
                 <div class="modal-footer">
                     <button type="button"
                             class="btn btn-light"
                             data-bs-dismiss="modal">
-                        Cancel
+                        <i class="bi bi-x-lg me-1"></i> Cancel
                     </button>
 
                     <button type="submit"
                             class="btn btn-unique">
-                        Create
+                        <i class="bi bi-check-lg me-1"></i> Create
                     </button>
                 </div>
             </form>
@@ -109,7 +281,7 @@
 
 <!-- EDIT ROLE MODAL -->
 <div class="modal fade" id="editRoleModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <form asp-controller="Admin" asp-action="EditRole" method="post">
                 @Html.AntiForgeryToken()
@@ -117,29 +289,38 @@
                 <input type="hidden" id="editRoleId" name="id" />
 
                 <div class="modal-header">
-                    <h5 class="modal-title">+Edit</h5>
+                    <h5 class="modal-title">
+                        <i class="bi bi-pencil-square me-2 text-primary"></i>
+                        Edit Role
+                    </h5>
                     <button type="button"
                             class="btn-close"
                             data-bs-dismiss="modal"></button>
                 </div>
 
                 <div class="modal-body">
-                    <input id="editRoleName"
-                           name="name"
-                           class="form-control"
-                           required />
+                    <div class="mb-3">
+                        <label class="form-label">Role Name <span class="required-star">*</span></label>
+                        <input id="editRoleName"
+                               name="name"
+                               class="form-control"
+                               required 
+                               minlength="2" 
+                               maxlength="50" />
+                        <small class="text-muted">Role name must be between 2-50 characters.</small>
+                    </div>
                 </div>
 
                 <div class="modal-footer">
                     <button type="button"
                             class="btn btn-light"
                             data-bs-dismiss="modal">
-                        Cancel
+                        <i class="bi bi-x-lg me-1"></i> Cancel
                     </button>
 
                     <button type="submit"
                             class="btn btn-unique">
-                        Update
+                        <i class="bi bi-check-lg me-1"></i> Update
                     </button>
                 </div>
             </form>
@@ -148,13 +329,29 @@
 </div>
 
 <script>
-    const editModal = document.getElementById('editRoleModal');
-    editModal.addEventListener('show.bs.modal', function (event) {
-        const button = event.relatedTarget;
-        document.getElementById('editRoleId').value =
-            button.getAttribute('data-role-id');
-
-        document.getElementById('editRoleName').value =
-            button.getAttribute('data-role-name');
+    // Edit Role Modal - Populate fields
+    document.addEventListener('DOMContentLoaded', function() {
+        const editModal = document.getElementById('editRoleModal');
+        
+        editModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            
+            // Get data from button attributes
+            const roleId = button.getAttribute('data-role-id');
+            const roleName = button.getAttribute('data-role-name');
+            
+            // Populate modal fields
+            document.getElementById('editRoleId').value = roleId;
+            document.getElementById('editRoleName').value = roleName;
+        });
+        
+        // Add confirmation for delete
+        document.querySelectorAll('.btn-outline-danger').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                if (!confirm('Are you sure you want to delete this role?')) {
+                    e.preventDefault();
+                }
+            });
+        });
     });
 </script>

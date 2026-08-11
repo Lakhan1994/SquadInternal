@@ -1,19 +1,17 @@
-﻿
-
-// Ensure a global currentEmployeeId exists for inline onclick handlers
+﻿// Ensure a global currentEmployeeId exists for inline onclick handlers
 var currentEmployeeId = window.currentEmployeeId ?? null;
 
 // Prevent this file from initializing multiple times (double-binding handlers)
 if (window._employeesJsInitialized) {
-        // already initialized, avoid re-binding events
-        console.debug('employees.js: already initialized, skipping re-init');
-    } else {
-        window._employeesJsInitialized = true;
+    // already initialized, avoid re-binding events
+    console.debug('employees.js: already initialized, skipping re-init');
+} else {
+    window._employeesJsInitialized = true;
 
-        // Use the global currentEmployeeId variable (keeps inline handlers working)
-        currentEmployeeId = currentEmployeeId ?? null;
-        window.currentEmployeeId = currentEmployeeId;
-   
+    // Use the global currentEmployeeId variable (keeps inline handlers working)
+    currentEmployeeId = currentEmployeeId ?? null;
+    window.currentEmployeeId = currentEmployeeId;
+
     const maxYear = 2026; // Fixed maximum year
 
     /* =========================================================
@@ -27,9 +25,9 @@ if (window._employeesJsInitialized) {
         const value = inputElement.value.trim();
         const indicator = document.getElementById(indicatorId);
         const helpText = document.getElementById(indicatorId.replace('Indicator', 'Help')) ||
-                         document.getElementById('scoreHelp') ||
-                         document.getElementById('editScoreHelp') ||
-                         document.getElementById('empEditScoreHelp');
+            document.getElementById('scoreHelp') ||
+            document.getElementById('editScoreHelp') ||
+            document.getElementById('empEditScoreHelp');
 
         if (!value) {
             if (indicator) {
@@ -153,14 +151,14 @@ if (window._employeesJsInitialized) {
     }
 
     // Initialize score type indicator for add form
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         updateScoreType(eduScore, 'scoreTypeIndicator');
     });
 
     // Reset education when Add Employee modal opens
-    const addEmployeeModal = document.getElementById("addEmployeeModal");
-    if (addEmployeeModal) {
-        addEmployeeModal.addEventListener("show.bs.modal", () => {
+    const addEmployeeModalElement = document.getElementById("addEmployeeModal");
+    if (addEmployeeModalElement) {
+        addEmployeeModalElement.addEventListener("show.bs.modal", () => {
             eduIndex = 0;
             const eduTableBody = document.getElementById("eduTableBody");
             if (eduTableBody) eduTableBody.innerHTML = "";
@@ -201,7 +199,7 @@ if (window._employeesJsInitialized) {
         }
     }
 
-    window.addDocumentForNewEmployee = function() {
+    window.addDocumentForNewEmployee = function () {
         const docType = document.getElementById("addDocumentType")?.value || "";
         const docTypeOther = document.getElementById("addDocTypeOther")?.value.trim() || "";
         const docFile = document.getElementById("addDocumentFile")?.files[0];
@@ -289,14 +287,14 @@ if (window._employeesJsInitialized) {
         tableBody.innerHTML = html;
     }
 
-    window.removeAddEmployeeDocument = function(index) {
+    window.removeAddEmployeeDocument = function (index) {
         addEmployeeDocuments.splice(index, 1);
         updateAddDocumentsTable();
         showToast("Document removed", "info");
     };
 
     // Handle document type "Other" visibility
-    document.addEventListener("change", function(e) {
+    document.addEventListener("change", function (e) {
         if (e.target && e.target.id === "addDocumentType") {
             const otherDiv = document.getElementById("addDocTypeOtherDiv");
             if (otherDiv) {
@@ -305,90 +303,84 @@ if (window._employeesJsInitialized) {
         }
     });
 
-window.addEducation = function () {
+    window.addEducation = function () {
+        const level = document.getElementById("eduLevel")?.value || "";
+        const otherLevel = document.getElementById("eduOtherLevel")?.value.trim() || "";
+        const degreeDiv = document.getElementById("degreeDiv");
+        const degreeName = document.getElementById("degreeName");
+        const institute = document.getElementById("eduInstitute")?.value.trim() || "";
+        const year = document.getElementById("eduYear")?.value || "";
+        const score = document.getElementById("eduScore")?.value || "";
 
+        if (!level) {
+            alert("Please select education level");
+            return;
+        }
 
-    const level = document.getElementById("eduLevel")?.value || "";
-    const otherLevel = document.getElementById("eduOtherLevel")?.value.trim() || "";
-    const degreeDiv = document.getElementById("degreeDiv");
-    const degreeName = document.getElementById("degreeName");
-    const institute = document.getElementById("eduInstitute")?.value.trim() || "";
-    const year = document.getElementById("eduYear")?.value || "";
-    const score = document.getElementById("eduScore")?.value || "";
+        if (level === "Other" && !otherLevel) {
+            alert("Please specify the education level");
+            return;
+        }
 
-    if (!level) {
-        alert("Please select education level");
-        return;
-    }
+        if (!institute) {
+            alert("Please enter institute name");
+            return;
+        }
 
-    if (level === "Other" && !otherLevel) {
-        alert("Please specify the education level");
-        return;
-    }
+        const stream = degreeDiv && !degreeDiv.classList.contains("d-none")
+            ? (degreeName ? degreeName.value : "")
+            : "";
 
-    if (!institute) {
-        alert("Please enter institute name");
-        return;
-    }
+        const displayScore = formatScore(score);
+        const displayLevel = level === "Other" ? otherLevel : level;
 
-    const stream = degreeDiv && !degreeDiv.classList.contains("d-none")
-        ? (degreeName ? degreeName.value : "")
-        : "";
+        const row = `
+            <tr>
+                <td>${escapeHtml(displayLevel)}</td>
+                <td>${escapeHtml(stream) || "-"}</td>
+                <td>${escapeHtml(institute)}</td>
+                <td>${escapeHtml(year) || "-"}</td>
+                <td>${displayScore}</td>
+                <td class="text-nowrap">
+                    <button type="button" class="btn btn-sm btn-outline-danger"
+                            onclick="removeEducationRow(this)">
+                        <i class="bi bi-trash3"></i>
+                    </button>
+                </td>
 
-    const displayScore = formatScore(score);
-    const displayLevel = level === "Other" ? otherLevel : level;
+                <input type="hidden" name="Educations[${eduIndex}].Level" value="${escapeHtml(level)}" />
+                <input type="hidden" name="Educations[${eduIndex}].LevelOther" value="${escapeHtml(otherLevel)}" />
+                <input type="hidden" name="Educations[${eduIndex}].Stream" value="${escapeHtml(stream)}" />
+                <input type="hidden" name="Educations[${eduIndex}].Institute" value="${escapeHtml(institute)}" />
+                <input type="hidden" name="Educations[${eduIndex}].PassingYear" value="${escapeHtml(year)}" />
+                <input type="hidden" name="Educations[${eduIndex}].PercentageOrCGPA" value="${escapeHtml(score)}" />
+            </tr>`;
 
-    const row = `
-        <tr>
-            <td>${escapeHtml(displayLevel)}</td>
-            <td>${escapeHtml(stream) || "-"}</td>
-            <td>${escapeHtml(institute)}</td>
-            <td>${escapeHtml(year) || "-"}</td>
-            <td>${displayScore}</td>
-            <td class="text-nowrap">
-                <button type="button" class="btn btn-sm btn-outline-danger"
-                        onclick="removeEducationRow(this)">
-                    <i class="bi bi-trash3"></i>
-                </button>
-            </td>
+        document.getElementById("eduTableBody")
+            ?.insertAdjacentHTML("beforeend", row);
 
-            <input type="hidden" name="Educations[${eduIndex}].Level" value="${escapeHtml(level)}" />
-            <input type="hidden" name="Educations[${eduIndex}].LevelOther" value="${escapeHtml(otherLevel)}" />
-            <input type="hidden" name="Educations[${eduIndex}].Stream" value="${escapeHtml(stream)}" />
-            <input type="hidden" name="Educations[${eduIndex}].Institute" value="${escapeHtml(institute)}" />
-            <input type="hidden" name="Educations[${eduIndex}].PassingYear" value="${escapeHtml(year)}" />
-            <input type="hidden" name="Educations[${eduIndex}].PercentageOrCGPA" value="${escapeHtml(score)}" />
-        </tr>`;
+        eduIndex++;
 
-    document.getElementById("eduTableBody")
-        ?.insertAdjacentHTML("beforeend", row);
+        document.getElementById("eduInstitute").value = "";
+        document.getElementById("eduYear").value = "";
+        document.getElementById("eduScore").value = "";
+        const eduOtherLevelInput = document.getElementById("eduOtherLevel");
+        if (eduOtherLevelInput) eduOtherLevelInput.value = "";
+        const eduOtherLevelDiv = document.getElementById("eduOtherLevelDiv");
+        if (eduOtherLevelDiv) eduOtherLevelDiv.classList.add("d-none");
+        if (degreeName) degreeName.value = "";
 
-    eduIndex++;
+        updateScoreType(document.getElementById("eduScore"), 'scoreTypeIndicator');
+    };
 
-    document.getElementById("eduInstitute").value = "";
-    document.getElementById("eduYear").value = "";
-    document.getElementById("eduScore").value = "";
-    const eduOtherLevelInput = document.getElementById("eduOtherLevel");
-    if (eduOtherLevelInput) eduOtherLevelInput.value = "";
-    const eduOtherLevelDiv = document.getElementById("eduOtherLevelDiv");
-    if (eduOtherLevelDiv) eduOtherLevelDiv.classList.add("d-none");
-    if (degreeName) degreeName.value = "";
-
-    updateScoreType(document.getElementById("eduScore"), 'scoreTypeIndicator');
-};
-
-
-
-window.removeEducationRow = function (btn)
- {
+    window.removeEducationRow = function (btn) {
         if (btn && btn.closest("tr")) {
             btn.closest("tr").remove();
         }
     }
 
     // Force submit Add Employee form with documents
-window.forceSubmitEmployeeForm = function ()
- {
+    window.forceSubmitEmployeeForm = function () {
         const form = document.getElementById("addEmployeeForm");
         if (!form) return;
 
@@ -413,19 +405,19 @@ window.forceSubmitEmployeeForm = function ()
                 },
                 body: formData
             })
-            .then(response => {
-                if (response.ok) {
-                    window.location.href = response.url || form.getAttribute("action").replace("CreateEmployee", "Employees");
-                } else {
-                    return response.text().then(text => {
-                        throw new Error("Form submission failed");
-                    });
-                }
-            })
-            .catch(error => {
-                console.error("Error:", error);
-                showToast("Error submitting form. Please try again.", "danger");
-            });
+                .then(response => {
+                    if (response.ok) {
+                        window.location.href = response.url || form.getAttribute("action").replace("CreateEmployee", "Employees");
+                    } else {
+                        return response.text().then(text => {
+                            throw new Error("Form submission failed");
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error("Error:", error);
+                    showToast("Error submitting form. Please try again.", "danger");
+                });
         } else {
             // No documents, submit normally
             form.submit();
@@ -477,14 +469,14 @@ window.forceSubmitEmployeeForm = function ()
     }
 
     // Setup tab switching with validation
-    window.initAddEmployeeTabValidation = function() {
+    window.initAddEmployeeTabValidation = function () {
         const tabLinks = document.querySelectorAll('#addEmployeeForm .nav-link');
 
         tabLinks.forEach(link => {
-            link.addEventListener('click', function(e) {
+            link.addEventListener('click', function (e) {
                 // Get the target tab from href or data-bs-target
                 let targetTab = this.getAttribute('data-bs-target')?.substring(1) // Remove # from data-bs-target
-                             || this.getAttribute('href')?.substring(1); // Remove # from href
+                    || this.getAttribute('href')?.substring(1); // Remove # from href
 
                 // If trying to switch away from personal tab, validate first
                 if (currentAddEmployeeTab === 'personal' && targetTab !== 'personal') {
@@ -503,7 +495,7 @@ window.forceSubmitEmployeeForm = function ()
     // Initialize when modal is shown
     const addEmployeeModal = document.getElementById('addEmployeeModal');
     if (addEmployeeModal) {
-        addEmployeeModal.addEventListener('show.bs.modal', function() {
+        addEmployeeModal.addEventListener('show.bs.modal', function () {
             setTimeout(initAddEmployeeTabValidation, 500);
         });
     }
@@ -513,12 +505,12 @@ window.forceSubmitEmployeeForm = function ()
        ========================================================= */
 
     // Initialize edit modal education level toggle
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         const empEditEduLevel = document.getElementById("empEditEduLevel");
         const empEditDegreeDiv = document.getElementById("empEditDegreeDiv");
 
         if (empEditEduLevel && empEditDegreeDiv) {
-            empEditEduLevel.addEventListener("change", function() {
+            empEditEduLevel.addEventListener("change", function () {
                 empEditDegreeDiv.classList.toggle(
                     "d-none",
                     !(this.value === "Degree" || this.value === "Post Graduation")
@@ -535,7 +527,7 @@ window.forceSubmitEmployeeForm = function ()
         const editEduDegreeDiv = document.getElementById("editEduDegreeDiv");
 
         if (editEduLevel && editEduDegreeDiv) {
-            editEduLevel.addEventListener("change", function() {
+            editEduLevel.addEventListener("change", function () {
                 editEduDegreeDiv.classList.toggle(
                     "d-none",
                     !(this.value === "Degree" || this.value === "Post Graduation")
@@ -578,7 +570,7 @@ window.forceSubmitEmployeeForm = function ()
     }
 
     // Open Edit Employee modal
-    function openEditEmployee(id, firstName, lastName, email, roleId, reportingToUserId, dateOfBirth, dateOfJoining, gender, hasProfilePicture, initials, mobileNumber, bloodGroup) {
+    window.openEditEmployee = function (id, firstName, lastName, email, roleId, reportingToUserId, dateOfBirth, dateOfJoining, gender, hasProfilePicture, initials, mobileNumber, bloodGroup) {
         // Set current employee ID (global for inline handlers)
         currentEmployeeId = id;
         window.currentEmployeeId = id;
@@ -692,7 +684,7 @@ window.forceSubmitEmployeeForm = function ()
     });
 
     // Add education to existing employee (for Edit modal)
-    async function addEducationToEmployee() {
+    window.addEducationToEmployee = async function () {
         console.log("addEducationToEmployee called");
 
         const employeeId = document.getElementById("editId")?.value;
@@ -941,7 +933,7 @@ window.forceSubmitEmployeeForm = function ()
     }
 
     // Open edit education modal
-    async function openEditEducationById(id) {
+    window.openEditEducationById = async function (id) {
         try {
             const response = await fetch(`/Admin/GetEducation/${id}`);
 
@@ -999,7 +991,7 @@ window.forceSubmitEmployeeForm = function ()
     }
 
     // Save edited education
-    async function saveEducationEdit() {
+    window.saveEducationEdit = async function () {
         const id = document.getElementById("editEduId").value;
         const level = document.getElementById("editEduLevel").value;
         const degree = document.getElementById("editEduDegreeName")?.value || "";
@@ -1066,7 +1058,7 @@ window.forceSubmitEmployeeForm = function ()
     }
 
     // Delete education
-    async function deleteEducation(id) {
+    window.deleteEducation = async function (id) {
         if (!confirm("Are you sure you want to delete this education record?")) return;
 
         // Get CSRF token
@@ -1110,7 +1102,7 @@ window.forceSubmitEmployeeForm = function ()
     // Clear education form when edit modal opens
     const editEmployeeModal = document.getElementById('editEmployeeModal');
     if (editEmployeeModal) {
-        editEmployeeModal.addEventListener('show.bs.modal', function() {
+        editEmployeeModal.addEventListener('show.bs.modal', function () {
             clearEditEducationForm();
         });
     }
@@ -1286,7 +1278,7 @@ window.forceSubmitEmployeeForm = function ()
         toast.show();
 
         // Remove toast after it hides
-        toastElement.addEventListener('hidden.bs.toast', function() {
+        toastElement.addEventListener('hidden.bs.toast', function () {
             toastElement.remove();
         });
     }
@@ -1301,23 +1293,19 @@ window.forceSubmitEmployeeForm = function ()
             '"': '&quot;',
             "'": '&#039;'
         };
-        return text.toString().replace(/[&<>"']/g, function(m) { return map[m]; });
+        return text.toString().replace(/[&<>"']/g, function (m) { return map[m]; });
     }
-document.addEventListener("change", function (e) {
 
-    if (e.target && e.target.id === "eduLevel") {
+    document.addEventListener("change", function (e) {
+        if (e.target && e.target.id === "eduLevel") {
+            const degreeDiv = document.getElementById("degreeDiv");
+            if (!degreeDiv) return;
 
-        const degreeDiv = document.getElementById("degreeDiv");
-
-        if (!degreeDiv) return;
-
-        if (e.target.value === "Degree" || e.target.value === "Post Graduation") {
-            degreeDiv.classList.remove("d-none");
-        } else {
-            degreeDiv.classList.add("d-none");
+            if (e.target.value === "Degree" || e.target.value === "Post Graduation") {
+                degreeDiv.classList.remove("d-none");
+            } else {
+                degreeDiv.classList.add("d-none");
+            }
         }
-    }
-
-});
-
+    });
 }

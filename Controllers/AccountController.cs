@@ -3,8 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using SquadInternal.Data;
 using SquadInternal.Services;
 using System.Threading.Tasks;
-using System.Net;
-using System.Net.Mail;
 
 namespace SquadInternal.Controllers
 {
@@ -12,11 +10,13 @@ namespace SquadInternal.Controllers
     {
         private readonly AppDbContext _db;
         private readonly PasswordService _passwordService;
+        private readonly EmailService _emailService;
 
-        public AccountController(AppDbContext db, PasswordService passwordService)
+        public AccountController(AppDbContext db, PasswordService passwordService, EmailService emailService)
         {
             _db = db;
             _passwordService = passwordService;
+            _emailService = emailService;
         }
 
         // -------------------- LOGIN (GET) --------------------
@@ -84,6 +84,7 @@ namespace SquadInternal.Controllers
             return RedirectToAction(nameof(Login));
         }
 
+        // -------------------- CHANGE PASSWORD --------------------
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ChangePassword(string currentPassword, string newPassword)
@@ -117,11 +118,14 @@ namespace SquadInternal.Controllers
             return RedirectToAction("Dashboard", "Admin");
         }
 
+        // -------------------- FORGOT PASSWORD (GET) --------------------
         [HttpGet]
         public IActionResult ForgotPassword()
         {
             return View();
         }
+
+        // -------------------- SEND OTP --------------------
         [HttpPost]
         public async Task<IActionResult> SendOtp(string email)
         {
@@ -143,16 +147,28 @@ namespace SquadInternal.Controllers
 
             await _db.SaveChangesAsync();
 
-            await SendEmail(email, otp);
+            // Send OTP using EmailService
+            try
+            {
+                var emailBody = _emailService.GetOtpTemplate(user.Name ?? "User", otp);
+                _emailService.SendEmail(email, "Password Reset OTP - SquadInternal", emailBody);
 
-            return Json(new { success = true });
+                return Json(new { success = true, message = "OTP sent successfully." });
+            }
+            catch (System.Exception ex)
+            {
+                // Log the error
+                Console.WriteLine($"Error sending email: {ex.Message}");
+                return Json(new { success = false, message = "Failed to send OTP. Please try again." });
+            }
         }
 
+        // -------------------- VERIFY OTP --------------------
         [HttpPost]
         public async Task<IActionResult> VerifyOtp(string email, string otp)
         {
             if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(otp))
-                return Json(new { success = false, message = "Invalid or expired OTP." });
+                return Json(new { success = false, message = "Email and OTP are required." });
 
             email = email.Trim().ToLower();
             otp = otp.Trim();
@@ -161,24 +177,38 @@ namespace SquadInternal.Controllers
                 .FirstOrDefaultAsync(u => u.Email != null && u.Email.ToLower() == email);
 
             if (user == null)
-                return Json(new { success = false, message = "Invalid or expired OTP." });
+                return Json(new { success = false, message = "Invalid email." });
 
             if (user.ResetOtp != otp)
-                return Json(new { success = false, message = "Invalid or expired OTP." });
+                return Json(new { success = false, message = "Invalid OTP. Please check and try again." });
 
             if (user.OtpExpiry == null || user.OtpExpiry < DateTime.Now)
-                return Json(new { success = false, message = "Invalid or expired OTP." });
+                return Json(new { success = false, message = "OTP has expired. Please request a new one." });
 
-            return Json(new { success = true });
+            // Clear OTP after successful verification
+            user.ResetOtp = null;
+            user.OtpExpiry = null;
+            await _db.SaveChangesAsync();
+
+            return Json(new { success = true, message = "OTP verified successfully." });
         }
 
+        // -------------------- RESET PASSWORD --------------------
         [HttpPost]
         public async Task<IActionResult> ResetPassword(string email, string newPassword, string confirmPassword)
         {
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(newPassword) || string.IsNullOrWhiteSpace(confirmPassword))
+                return Json(new { success = false, message = "All fields are required." });
+
+            if (newPassword.Length < 6)
+                return Json(new { success = false, message = "Password must be at least 6 characters long." });
+
             if (newPassword != confirmPassword)
                 return Json(new { success = false, message = "Passwords do not match." });
 
-            var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
+            email = email.Trim().ToLower();
+
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.Email != null && u.Email.ToLower() == email);
 
             if (user == null)
                 return Json(new { success = false, message = "User not found." });
@@ -189,78 +219,74 @@ namespace SquadInternal.Controllers
 
             await _db.SaveChangesAsync();
 
-            return Json(new { success = true });
+            return Json(new { success = true, message = "Password reset successfully. Please login with your new password." });
         }
-       
-        private async Task SendEmail(string toEmail, string otp)
+
+        // -------------------- SEND WELCOME EMAIL --------------------
+        public async Task<IActionResult> SendWelcomeEmail(int userId)
         {
-            var fromEmail = "lavinathorat864@gmail.com";
-            var fromPassword = "xyfvxewrnjeipsts";
+            var user = await _db.Users
+                .Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.Id == userId);
 
-            using (var smtp = new SmtpClient("smtp.gmail.com", 587))
+            if (user == null)
+                return Json(new { success = false, message = "User not found." });
+
+            try
             {
-                smtp.UseDefaultCredentials = false;
-                smtp.Credentials = new NetworkCredential(fromEmail, fromPassword);
-                smtp.EnableSsl = true;
+                var portalUrl = $"{Request.Scheme}://{Request.Host}/Account/ForgotPassword";
+                var emailBody = _emailService.GetEmployeeWelcomeTemplate(
+                    user.Name ?? "Employee",
+                    user.Email ?? "",
+                    user.Role?.Name ?? "Employee",
+                    portalUrl
+                );
 
-                using (var mail = new MailMessage(fromEmail, toEmail))
-                {
-                    mail.Subject = "SquadInternal | Password Reset OTP";
+                _emailService.SendEmail(user.Email, "Welcome to SquadInternal!", emailBody);
 
-                    mail.IsBodyHtml = true;
+                return Json(new { success = true, message = "Welcome email sent successfully." });
+            }
+            catch (System.Exception ex)
+            {
+                Console.WriteLine($"Error sending welcome email: {ex.Message}");
+                return Json(new { success = false, message = "Failed to send welcome email." });
+            }
+        }
 
-                    mail.Body = $@"
-            <div style='font-family: Arial, sans-serif; background-color:#f4f6f9; padding:20px;'>
-                <div style='max-width:500px; margin:0 auto; background:white; padding:30px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.05);'>
-                    
-                    <h2 style='color:#0d6efd; margin-bottom:10px;'>SquadInternal</h2>
-                    
-                    <p style='font-size:14px; color:#333;'>
-                        Hello,
-                    </p>
+        // -------------------- RESEND OTP --------------------
+        [HttpPost]
+        public async Task<IActionResult> ResendOtp(string email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+                return Json(new { success = false, message = "Email is required." });
 
-                    <p style='font-size:14px; color:#333;'>
-                        We Received a Request to Reset Your Password.
-                    </p>
+            email = email.Trim().ToLower();
 
-                    <p style='font-size:14px; color:#333;'>
-                        Please Use the Following One-Time Password (OTP) to Proceed Your Request:
-                    </p>
+            var user = await _db.Users
+                .FirstOrDefaultAsync(u => u.Email != null && u.Email.ToLower() == email);
 
-                    <div style='font-size:30px; font-weight:bold; 
-                                letter-spacing:4px; 
-                                text-align:center; 
-                                margin:20px 0; 
-                                color:#0d6efd;'>
-                        {otp}
-                    </div>
+            if (user == null)
+                return Json(new { success = false, message = "Email not found." });
 
-                    <p style='font-size:13px; color:#666;'>
-                        This OTP is valid for 5 minutes. 
-                        Do not share this code with anyone.
-                    </p>
+            var otp = new Random().Next(100000, 999999).ToString();
 
-                    <hr style='margin:20px 0; border:none; border-top:1px solid #eee;' />
+            user.ResetOtp = otp;
+            user.OtpExpiry = DateTime.Now.AddMinutes(5);
 
-                    <p style='font-size:12px; color:#999;'>
-                        If you did not request a password reset, please ignore this email.
-                    </p>
+            await _db.SaveChangesAsync();
 
-                    <p style='font-size:12px; color:#999; margin-top:20px;'>
-                        © {DateTime.Now.Year} SquadInternal. All rights reserved.
-                    </p>
+            try
+            {
+                var emailBody = _emailService.GetOtpTemplate(user.Name ?? "User", otp);
+                _emailService.SendEmail(email, "Password Reset OTP - SquadInternal", emailBody);
 
-                </div>
-            </div>";
-
-                    await smtp.SendMailAsync(mail);
-                }
+                return Json(new { success = true, message = "OTP resent successfully." });
+            }
+            catch (System.Exception ex)
+            {
+                Console.WriteLine($"Error resending OTP: {ex.Message}");
+                return Json(new { success = false, message = "Failed to resend OTP. Please try again." });
             }
         }
     }
-        }
-    
-
-
-            
-        
+}

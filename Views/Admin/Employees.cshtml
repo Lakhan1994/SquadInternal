@@ -6,14 +6,335 @@
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
     var roles = ViewBag.Roles as List<Role>;
     var currentYear = DateTime.Now.Year;
-    var maxYear = 2026; // Fixed maximum year
-    // Generate year list from 1900 to maxYear (2026)
+    var maxYear = 2026;
     var yearList = new List<int>();
     for (int year = 1900; year <= maxYear; year++)
     {
         yearList.Add(year);
     }
 }
+
+<style>
+    /* Custom styles for better spacing and shadows */
+    .modal-content {
+        border-radius: 16px !important;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15) !important;
+    }
+
+    .modal-header {
+        border-bottom: 2px solid #f0f2f5;
+        padding: 20px 28px;
+        background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
+        border-radius: 16px 16px 0 0;
+    }
+
+    .modal-title {
+        font-weight: 700;
+        color: #2c3e50;
+        font-size: 1.25rem;
+    }
+
+    .modal-body {
+        padding: 28px;
+    }
+
+    .modal-footer {
+        border-top: 2px solid #f0f2f5;
+        padding: 16px 28px;
+        background: #f8f9fa;
+        border-radius: 0 0 16px 16px;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 6px;
+        font-size: 0.9rem;
+    }
+
+    .required-star {
+        color: #dc3545;
+        font-weight: 700;
+        margin-left: 3px;
+        font-size: 1.1rem;
+    }
+
+    .form-control, .form-select {
+        border-radius: 8px;
+        border: 1.5px solid #e2e8f0;
+        padding: 10px 14px;
+        transition: all 0.2s ease;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #4d5bd4;
+            box-shadow: 0 0 0 4px rgba(77, 91, 212, 0.12);
+        }
+
+        .form-control.is-invalid, .form-select.is-invalid {
+            border-color: #dc3545;
+            box-shadow: 0 0 0 4px rgba(220, 53, 69, 0.12);
+        }
+
+    .invalid-feedback {
+        font-size: 0.8rem;
+        margin-top: 4px;
+        color: #dc3545;
+        font-weight: 500;
+    }
+
+    .row {
+        margin-bottom: 8px;
+    }
+
+    .tab-content {
+        padding-top: 20px;
+    }
+
+    .nav-tabs .nav-link {
+        font-weight: 600;
+        color: #6c757d;
+        border-radius: 8px 8px 0 0;
+        padding: 10px 20px;
+        transition: all 0.2s ease;
+    }
+
+        .nav-tabs .nav-link.active {
+            color: #4d5bd4;
+            border-color: #4d5bd4 #e2e8f0 #fff;
+            background: #ffffff;
+            font-weight: 700;
+        }
+
+        .nav-tabs .nav-link:hover {
+            border-color: #e2e8f0 #e2e8f0 #dee2e6;
+            background: #f8f9ff;
+            color: #4d5bd4;
+        }
+
+    .btn-primary {
+        border-radius: 8px;
+        font-weight: 600;
+        padding: 10px 24px;
+        background: linear-gradient(135deg, #6674f6 0%, #4d5bd4 100%);
+        border: none;
+        box-shadow: 0 4px 12px rgba(77, 91, 212, 0.3);
+        transition: all 0.2s ease;
+    }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(77, 91, 212, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+    .btn-outline-secondary {
+        border-radius: 8px;
+        font-weight: 600;
+        padding: 10px 24px;
+    }
+
+    .input-group-text {
+        border-radius: 8px;
+        font-weight: 600;
+        background: #f8f9fa;
+        border: 1.5px solid #e2e8f0;
+    }
+
+    .input-group .form-control {
+        border-radius: 8px 0 0 8px;
+    }
+
+    .input-group .input-group-text {
+        border-radius: 0 8px 8px 0;
+    }
+
+    .text-muted {
+        color: #6c757d !important;
+        font-size: 0.8rem;
+    }
+
+    .card {
+        border-radius: 12px !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06) !important;
+        border: none !important;
+    }
+
+    .table {
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+        .table thead th {
+            background: #f8f9fa;
+            font-weight: 700;
+            color: #2c3e50;
+            border-bottom: 2px solid #e2e8f0;
+            padding: 14px 16px;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .table tbody td {
+            padding: 12px 16px;
+            vertical-align: middle;
+            border-bottom: 1px solid #f0f2f5;
+        }
+
+        .table tbody tr:hover {
+            background: #f8f9ff;
+        }
+
+    .emp-avatar-img {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid #e2e8f0;
+    }
+
+    .emp-avatar-initials {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #6674f6 0%, #4d5bd4 100%);
+        color: #ffffff;
+        font-weight: 700;
+        font-size: 16px;
+        border: 2px solid #e2e8f0;
+    }
+
+    .page-accent {
+        padding: 20px 0 16px 0;
+    }
+
+        .page-accent h3 {
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+    .gap-3 {
+        gap: 1rem !important;
+    }
+
+    .mt-4 {
+        margin-top: 1.5rem !important;
+    }
+
+    .mb-3 {
+        margin-bottom: 1rem !important;
+    }
+
+    .my-3 {
+        margin-top: 1rem !important;
+        margin-bottom: 1rem !important;
+    }
+
+    .shadow-sm {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+    }
+
+    /* Document section specific styles */
+    .document-upload-row {
+        background: #f8f9ff;
+        padding: 20px;
+        border-radius: 12px;
+        border: 1.5px dashed #d9deff;
+        margin-bottom: 20px;
+    }
+
+        .document-upload-row .col-md-4,
+        .document-upload-row .col-md-5,
+        .document-upload-row .col-md-3 {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+        }
+
+        .document-upload-row .form-label {
+            margin-bottom: 4px;
+            font-size: 0.85rem;
+        }
+
+        .document-upload-row .btn {
+            height: 46px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+    .file-input-wrapper {
+        position: relative;
+        overflow: hidden;
+        display: inline-block;
+        width: 100%;
+    }
+
+        .file-input-wrapper input[type=file] {
+            font-size: 100px;
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .file-input-wrapper .form-control {
+            cursor: pointer;
+        }
+
+    /* Make file input more visible */
+    input[type="file"] {
+        display: block;
+        width: 100%;
+        padding: 8px 12px;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        color: #2c3e50;
+        background-color: #ffffff;
+        background-clip: padding-box;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 8px;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    }
+
+        input[type="file"]:hover {
+            border-color: #4d5bd4;
+            background-color: #f8f9ff;
+        }
+
+        input[type="file"]:focus {
+            border-color: #4d5bd4;
+            outline: 0;
+            box-shadow: 0 0 0 4px rgba(77, 91, 212, 0.12);
+        }
+
+        input[type="file"]::file-selector-button {
+            padding: 6px 16px;
+            border: none;
+            border-radius: 6px;
+            background: linear-gradient(135deg, #6674f6 0%, #4d5bd4 100%);
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            margin-right: 12px;
+            transition: all 0.2s ease;
+        }
+
+            input[type="file"]::file-selector-button:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(77, 91, 212, 0.3);
+            }
+</style>
 
 @if (TempData["Error"] != null)
 {
@@ -36,7 +357,7 @@
     <div class="table-responsive">
         <table class="table table-hover mb-0">
             <thead class="table-light">
-                <tr> 
+                <tr>
                     <th>Sr.No</th>
                     <th>Photo</th>
                     <th>First Name</th>
@@ -55,7 +376,6 @@
                 @foreach (var e in Model)
                 {
                     <tr>
-                        <!-- Show Row Number Instead of DB Id -->
                         <td>@rowNumber</td>
                         <td>
                             @{
@@ -70,32 +390,31 @@
                                 <span class="emp-avatar-initials" data-employee-id="@e.Id">@listInitials</span>
                             }
                         </td>
-
                         <td>@e.FirstName</td>
                         <td>@e.LastName</td>
                         <td>@(e.User?.Role?.Name ?? "-")</td>
                         <td>@(e.ReportingToUser?.Name ?? "-")</td>
                         <td>@(e.AddedByUser?.Name ?? "Admin")</td>
-
                         <td>
                             <button type="button"
                                     class="btn btn-sm btn-outline-primary me-1"
                                     title="Edit Employee"
                                     onclick="openEditEmployee(
-                            '@e.Id',
-                            '@Html.Raw(e.FirstName?.Replace("'", "\\'") ?? "")',
-                            '@Html.Raw(e.LastName?.Replace("'", "\\'") ?? "")',
-                            '@Html.Raw(e.User?.Email?.Replace("'", "\\'") ?? "")',
-                            '@e.User?.RoleId',
-                            '@e.ReportingToUserId',
-                            '@e.DateOfBirth?.ToString("yyyy-MM-dd")',
-                            '@e.DateOfJoining?.ToString("yyyy-MM-dd")',
-                            '@e.Gender',
-                            @(string.IsNullOrWhiteSpace(e.ProfilePicturePath) ? "false" : "true"),
-                            '@listInitials',
-                            '@Html.Raw(e.MobileNumber?.Replace("'", "\\'") ?? "")',
-                            '@Html.Raw(e.BloodGroup?.Replace("'", "\\'") ?? "")'
-                        )">
+                                '@e.Id',
+                                '@Html.Raw(e.FirstName?.Replace("'", "\\'") ?? "")',
+                                '@Html.Raw(e.LastName?.Replace("'", "\\'") ?? "")',
+                                '@Html.Raw(e.User?.Email?.Replace("'", "\\'") ?? "")',
+                                '@e.User?.RoleId',
+                                '@e.ReportingToUserId',
+                                '@e.DateOfBirth?.ToString("yyyy-MM-dd")',
+                                '@e.DateOfJoining?.ToString("yyyy-MM-dd")',
+                                '@e.Gender',
+                                @(string.IsNullOrWhiteSpace(e.ProfilePicturePath) ? "false" : "true"),
+                                '@listInitials',
+                                '@Html.Raw(e.MobileNumber?.Replace("'", "\\'") ?? "")',
+                                '@Html.Raw(e.BloodGroup?.Replace("'", "\\'") ?? "")',
+                                '@e.Salary'
+                                )">
                                 <i class="bi bi-pencil"></i>
                             </button>
 
@@ -111,11 +430,9 @@
                             </form>
                         </td>
                     </tr>
-
                     rowNumber++;
                 }
             </tbody>
-
         </table>
     </div>
 </div>
@@ -133,7 +450,8 @@
                   asp-action="CreateEmployee"
                   asp-controller="Admin"
                   method="post"
-                  enctype="multipart/form-data">
+                  enctype="multipart/form-data"
+                  novalidate>
                 @Html.AntiForgeryToken()
 
                 <div class="modal-body">
@@ -158,56 +476,87 @@
                     <div class="tab-content">
                         <!-- PERSONAL DETAILS -->
                         <div class="tab-pane fade show active" id="personal" role="tabpanel">
-                            <div class="row g-3">
+                            <div class="row g-3 mb-4">
                                 <div class="col-12">
                                     <div class="d-flex align-items-start gap-3">
                                         <div class="position-relative flex-shrink-0">
-                                            <img id="addProfilePicturePreview" src="" alt="Profile" class="emp-avatar-img" style="width:72px;height:72px;display:none;" />
-                                            <span id="addProfileInitials" class="emp-avatar-initials" style="width:72px;height:72px;font-size:22px;">--</span>
+                                            <img id="addProfilePicturePreview" src="" alt="Profile" class="emp-avatar-img" style="width:80px;height:80px;display:none;" />
+                                            <span id="addProfileInitials" class="emp-avatar-initials" style="width:80px;height:80px;font-size:26px;">--</span>
                                         </div>
                                         <div class="flex-grow-1">
                                             <label class="form-label mb-1">Profile Picture</label>
                                             <input type="file" id="addProfilePictureFile" name="profilePictureFile" accept=".jpg,.jpeg,.png,.webp" class="form-control form-control-sm" />
                                             <small class="text-muted">JPG, PNG or WEBP. Max 5 MB.</small>
+                                            <div class="invalid-feedback">Please upload a valid image file (JPG, PNG, WEBP) max 5MB.</div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="row g-3">
+
+                            <div class="row g-3 mb-3">
                                 <div class="col-md-6">
-                                    <label class="form-label">First Name</label>
-                                    <input class="form-control" name="FirstName" required />
+                                    <label class="form-label">
+                                        First Name <span class="required-star">*</span>
+                                    </label>
+                                    <input class="form-control" name="FirstName" required
+                                           minlength="2" maxlength="50"
+                                           pattern="[A-Za-z\\s'-]+"
+                                           title="Only letters, spaces, hyphens and apostrophes are allowed" />
+                                    <div class="invalid-feedback">Please enter a valid first name (2-50 characters, letters only).</div>
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label">Last Name</label>
-                                    <input class="form-control" name="LastName" required />
+                                    <label class="form-label">
+                                        Last Name <span class="required-star">*</span>
+                                    </label>
+                                    <input class="form-control" name="LastName" required
+                                           minlength="2" maxlength="50"
+                                           pattern="[A-Za-z\\s'-]+"
+                                           title="Only letters, spaces, hyphens and apostrophes are allowed" />
+                                    <div class="invalid-feedback">Please enter a valid last name (2-50 characters, letters only).</div>
+                                </div>
+                            </div>
+
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">
+                                        Email <span class="required-star">*</span>
+                                    </label>
+                                    <input type="email" class="form-control" name="Email" required
+                                           pattern="[a-zA-Z0-9._%+-]+@@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"
+                                           title="Please enter a valid email address" />
+                                    <div class="invalid-feedback">Please enter a valid email address (e.g., user@@domain.com).</div>
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label">Email</label>
-                                    <input type="email" class="form-control" name="Email" required />
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Role</label>
+                                    <label class="form-label">
+                                        Role <span class="required-star">*</span>
+                                    </label>
                                     <select class="form-select" name="RoleId" required>
                                         <option value="">-- Select --</option>
                                         @if (roles != null)
                                         {
-                                            @foreach (var r in roles)
+                                            foreach (var r in roles)
                                             {
                                                 <option value="@r.Id">@r.Name</option>
                                             }
                                         }
                                     </select>
+                                    <div class="invalid-feedback">Please select a role.</div>
                                 </div>
-                                <div class="col-md-3">
+                            </div>
+
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
                                     <label class="form-label">Mobile Number</label>
                                     <input type="tel"
                                            class="form-control"
                                            name="MobileNumber"
-                                           placeholder="Enter mobile number" />
+                                           placeholder="Enter mobile number"
+                                           pattern="[0-9]{10}"
+                                           maxlength="10"
+                                           title="Please enter a valid 10-digit mobile number" />
+                                    <div class="invalid-feedback">Please enter a valid 10-digit mobile number (numbers only).</div>
                                 </div>
-
-                                <div class="col-md-3">
+                                <div class="col-md-6">
                                     <label class="form-label">Blood Group</label>
                                     <select class="form-select" name="BloodGroup">
                                         <option value="">-- Select --</option>
@@ -221,8 +570,10 @@
                                         <option value="O-">O-</option>
                                     </select>
                                 </div>
+                            </div>
 
-                                <div class="col-md-3">
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
                                     <label class="form-label">Salary</label>
                                     <input type="number"
                                            class="form-control"
@@ -230,6 +581,7 @@
                                            min="0"
                                            step="0.01"
                                            placeholder="Enter salary" />
+                                    <div class="invalid-feedback">Please enter a valid salary amount (0 or greater).</div>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Reporting To</label>
@@ -244,14 +596,24 @@
                                         }
                                     </select>
                                 </div>
+                            </div>
+
+                            <div class="row g-3 mb-3">
                                 <div class="col-md-6">
                                     <label class="form-label">Date Of Birth</label>
-                                    <input type="date" class="form-control" name="DateOfBirth" />
+                                    <input type="date" class="form-control" name="DateOfBirth"
+                                           max="@DateTime.Now.AddYears(-18).ToString("yyyy-MM-dd")" />
+                                    <div class="invalid-feedback">Employee must be at least 18 years old.</div>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Date Of Joining</label>
-                                    <input type="date" class="form-control" name="DateOfJoining" />
+                                    <input type="date" class="form-control" name="DateOfJoining"
+                                           max="@DateTime.Now.ToString("yyyy-MM-dd")" />
+                                    <div class="invalid-feedback">Date of joining cannot be in the future.</div>
                                 </div>
+                            </div>
+
+                            <div class="row g-3">
                                 <div class="col-md-6">
                                     <label class="form-label">Gender</label>
                                     <select class="form-select" name="Gender">
@@ -267,7 +629,7 @@
                         <!-- EDUCATION -->
                         <div class="tab-pane fade" id="education" role="tabpanel">
                             <div class="row g-3 mb-3">
-                                <div class="col-md-4">
+                                <div class="col-md-6">
                                     <label class="form-label">Education Level</label>
                                     <select id="eduLevel" class="form-select">
                                         <option value="">-- Select --</option>
@@ -281,12 +643,14 @@
                                     </select>
                                 </div>
 
-                                <div class="col-md-4 d-none" id="eduOtherLevelDiv">
+                                <div class="col-md-6 d-none" id="eduOtherLevelDiv">
                                     <label class="form-label">Specify Education Level</label>
                                     <input id="eduOtherLevel" class="form-control" placeholder="Enter education level" />
                                 </div>
+                            </div>
 
-                                <div class="col-md-4 d-none" id="degreeDiv">
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6 d-none" id="degreeDiv">
                                     <label class="form-label">Degree</label>
                                     <select id="degreeName" class="form-select">
                                         <option value="">-- Select --</option>
@@ -302,12 +666,14 @@
                                     </select>
                                 </div>
 
-                                <div class="col-md-4">
+                                <div class="col-md-6">
                                     <label class="form-label">Institute</label>
                                     <input id="eduInstitute" class="form-control" />
                                 </div>
+                            </div>
 
-                                <div class="col-md-4">
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
                                     <label class="form-label">Year</label>
                                     <select id="eduYear" class="form-select">
                                         <option value="">-- Select Year --</option>
@@ -318,7 +684,7 @@
                                     </select>
                                 </div>
 
-                                <div class="col-md-4">
+                                <div class="col-md-6">
                                     <label class="form-label">Percentage / CGPA</label>
                                     <div class="input-group">
                                         <input id="eduScore" class="form-control"
@@ -328,62 +694,82 @@
                                     </div>
                                     <small class="text-muted" id="scoreHelp">Enter score (auto-detected)</small>
                                 </div>
+                            </div>
 
-                                <div class="col-md-4">
+                            <div class="row g-3 mb-3">
+                                <div class="col-12">
                                     <button type="button"
-                                            class="btn btn-primary w-100 mt-4"
+                                            class="btn btn-primary"
                                             onclick="addEducation()">
-                                        + Add
+                                        + Add Education
                                     </button>
                                 </div>
                             </div>
 
-                            <table class="table table-sm table-bordered">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Level</th>
-                                        <th>Degree</th>
-                                        <th>Institute</th>
-                                        <th>Year</th>
-                                        <th>Score</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="eduTableBody"></tbody>
-                            </table>
+                            <hr class="my-3" />
+
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Level</th>
+                                            <th>Degree</th>
+                                            <th>Institute</th>
+                                            <th>Year</th>
+                                            <th>Score</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="eduTableBody"></tbody>
+                                </table>
+                            </div>
                         </div>
 
-                        <!-- DOCUMENTS TAB -->
+                       
+                        <!-- DOCUMENTS TAB - FIXED WITH FILE INPUT VISIBLE -->
                         <div class="tab-pane fade" id="documents" role="tabpanel">
-                            <div class="row g-2 align-items-end mb-4">
-                                <div class="col-md-3">
-                                    <label class="form-label">Document Type</label>
-                                    <select id="addDocumentType" class="form-select">
-                                        <option value="">-- Select Type --</option>
-                                        <option value="Aadhar">Aadhar</option>
-                                        <option value="PAN">PAN</option>
-                                        <option value="Passport">Passport</option>
-                                        <option value="Driving License">Driving License</option>
-                                        <option value="Voter ID">Voter ID</option>
-                                        <option value="Other">Other</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-3 d-none" id="addDocTypeOtherDiv">
-                                    <label class="form-label">Specify Type</label>
-                                    <input id="addDocTypeOther" class="form-control" placeholder="Enter document type" />
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">Document File</label>
-                                    <input type="file" id="addDocumentFile" accept=".pdf,.jpg,.jpeg,.png,.webp" class="form-control" />
-                                    <small class="text-muted">PDF, JPG, PNG or WEBP. Max 5 MB.</small>
-                                </div>
-                                <div class="col-md-2">
-                                    <button type="button" class="btn btn-primary w-100" onclick="addDocumentForNewEmployee()">
-                                        + Add
-                                    </button>
+                            <div class="document-upload-row">
+                                <div class="row g-3 align-items-end">
+                                    <!-- Document Type -->
+                                    <div class="col-md-3">
+                                        <label class="form-label">Document Type</label>
+                                        <select id="addDocumentType" class="form-select" onchange="toggleDocumentTypeOther(this)">
+                                            <option value="">-- Select Type --</option>
+                                            <option value="Aadhar">Aadhar</option>
+                                            <option value="PAN">PAN</option>
+                                            <option value="Passport">Passport</option>
+                                            <option value="Driving License">Driving License</option>
+                                            <option value="Voter ID">Voter ID</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                        <div id="addDocTypeOtherDiv" class="d-none mt-2">
+                                            <input id="addDocTypeOther" class="form-control" placeholder="Enter document type" />
+                                        </div>
+                                    </div>
+
+                                    <!-- Document File - WITH VISIBLE FILE INPUT -->
+                                    <div class="col-md-5">
+                                        <label class="form-label">Document File</label>
+                                        <input type="file"
+                                               id="addDocumentFile"
+                                               name="documentFile"
+                                               accept=".pdf,.jpg,.jpeg,.png,.webp"
+                                               class="form-control"
+                                               style="padding: 8px 12px; height: auto; cursor: pointer;" />
+                                        
+                                    </div>
+
+                                    <!-- Add Button -->
+                                    <div class="col-md-4">
+                                        <button type="button" class="btn btn-primary w-100" onclick="addDocumentForNewEmployee()">
+                                            <i class="bi bi-plus-lg me-1"></i> Add Document
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="table-responsive">
+
+                            <!-- Documents Table -->
+                            <div class="table-responsive mt-4">
                                 <table class="table table-sm table-hover mb-0">
                                     <thead class="table-light">
                                         <tr>
@@ -395,7 +781,9 @@
                                     </thead>
                                     <tbody id="addDocumentsTable">
                                         <tr id="noDocumentsRow">
-                                            <td colspan="4" class="text-center text-muted py-3">No documents added yet</td>
+                                            <td colspan="4" class="text-center text-muted py-3">
+                                                <i class="bi bi-file-earmark-text me-2"></i> No documents added yet
+                                            </td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -408,7 +796,7 @@
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
                         <i class="bi bi-x-lg me-1"></i> Cancel
                     </button>
-                    <button type="button" class="btn btn-primary" onclick="forceSubmitEmployeeForm()">
+                    <button type="button" class="btn btn-primary" onclick="validateAndSubmitAddForm()">
                         <i class="bi bi-check-lg me-1"></i> Save
                     </button>
                 </div>
@@ -420,7 +808,7 @@
 <!-- ================= EDIT EDUCATION MODAL ================= -->
 <div class="modal fade" id="editEducationModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
+        <div class="modal-content border-0 shadow">
             <div class="modal-header">
                 <h5 class="modal-title">Edit Education</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -430,7 +818,8 @@
                 @Html.AntiForgeryToken()
                 <div class="modal-body">
                     <input type="hidden" id="editEduId" />
-                    <div class="row g-3">
+
+                    <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <label class="form-label">Level</label>
                             <select id="editEduLevel" class="form-select">
@@ -449,6 +838,9 @@
                             <label class="form-label">Specify Education Level</label>
                             <input id="editEduOtherLevel" class="form-control" placeholder="Enter education level" />
                         </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
                         <div class="col-md-6 d-none" id="editEduDegreeDiv">
                             <label class="form-label">Degree</label>
                             <select id="editEduDegreeName" class="form-select">
@@ -468,7 +860,10 @@
                             <label class="form-label">Institute</label>
                             <input id="editEduInstitute" class="form-control" />
                         </div>
-                        <div class="col-md-4">
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
                             <label class="form-label">Year</label>
                             <select id="editEduYear" class="form-select">
                                 <option value="">-- Select Year --</option>
@@ -478,7 +873,7 @@
                                 }
                             </select>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <label class="form-label">Score</label>
                             <div class="input-group">
                                 <input id="editEduScore" class="form-control"
@@ -503,7 +898,7 @@
 </div>
 
 <!-- ================= EDIT EMPLOYEE MODAL ================= -->
-<div class="modal fade" id="editEmployeeModal" tabindex="-1" aria-hidden="true"> 
+<div class="modal fade" id="editEmployeeModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content border-0 shadow">
             <div class="modal-header">
@@ -511,7 +906,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
-            <form id="editEmployeeForm" asp-action="EditEmployee" asp-controller="Admin" method="post">
+            <form id="editEmployeeForm" asp-action="EditEmployee" asp-controller="Admin" method="post" novalidate>
                 @Html.AntiForgeryToken()
                 <input type="hidden" id="editId" name="id" />
 
@@ -537,56 +932,108 @@
                     <div class="tab-content">
                         <!-- PERSONAL DETAILS TAB -->
                         <div class="tab-pane fade show active" id="edit-tab-personal" role="tabpanel">
-                            <div class="row g-3">
+                            <div class="row g-3 mb-4">
                                 <div class="col-12">
                                     <div class="d-flex align-items-start gap-3">
                                         <div class="position-relative flex-shrink-0">
-                                            <img id="editProfilePicturePreview" src="" alt="Profile" class="emp-avatar-img" style="width:72px;height:72px;display:none;" />
-                                            <span id="editProfileInitials" class="emp-avatar-initials" style="width:72px;height:72px;font-size:22px;"></span>
+                                            <img id="editProfilePicturePreview" src="" alt="Profile" class="emp-avatar-img" style="width:80px;height:80px;display:none;" />
+                                            <span id="editProfileInitials" class="emp-avatar-initials" style="width:80px;height:80px;font-size:26px;"></span>
                                         </div>
                                         <div class="flex-grow-1">
                                             <label class="form-label mb-1">Profile Picture</label>
                                             <input type="file" id="editProfilePictureFile" accept=".jpg,.jpeg,.png,.webp" class="form-control form-control-sm" />
                                             <small class="text-muted">JPG, PNG or WEBP. Max 5 MB.</small>
+                                            <div class="invalid-feedback">Please upload a valid image file (JPG, PNG, WEBP) max 5MB.</div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="row g-3">
+
+                            <div class="row g-3 mb-3">
                                 <div class="col-md-6">
-                                    <label class="form-label">First Name</label>
-                                    <input id="editFirstName" name="firstName" class="form-control" required />
+                                    <label class="form-label">
+                                        First Name <span class="required-star">*</span>
+                                    </label>
+                                    <input id="editFirstName" name="firstName" class="form-control" required
+                                           minlength="2" maxlength="50"
+                                           pattern="[A-Za-z\\s'-]+"
+                                           title="Only letters, spaces, hyphens and apostrophes are allowed" />
+                                    <div class="invalid-feedback">Please enter a valid first name (2-50 characters, letters only).</div>
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label">Last Name</label>
-                                    <input id="editLastName" name="lastName" class="form-control" required />
+                                    <label class="form-label">
+                                        Last Name <span class="required-star">*</span>
+                                    </label>
+                                    <input id="editLastName" name="lastName" class="form-control" required
+                                           minlength="2" maxlength="50"
+                                           pattern="[A-Za-z\\s'-]+"
+                                           title="Only letters, spaces, hyphens and apostrophes are allowed" />
+                                    <div class="invalid-feedback">Please enter a valid last name (2-50 characters, letters only).</div>
                                 </div>
+                            </div>
+
+                            <div class="row g-3 mb-3">
                                 <div class="col-md-6">
-                                    <label class="form-label">Email</label>
+                                    <label class="form-label">
+                                        Email <span class="required-star">*</span>
+                                    </label>
                                     <input type="email" id="editEmail" class="form-control" readonly />
                                     <small class="text-muted">Email cannot be changed</small>
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label">Role</label>
+                                    <label class="form-label">
+                                        Role <span class="required-star">*</span>
+                                    </label>
                                     <select id="editRole" name="roleId" class="form-select" required>
                                         <option value="">-- Select --</option>
                                         @if (roles != null)
                                         {
-                                            @foreach (var r in roles)
+                                            foreach (var r in roles)
                                             {
                                                 <option value="@r.Id">@r.Name</option>
                                             }
                                         }
                                     </select>
+                                    <div class="invalid-feedback">Please select a role.</div>
                                 </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Mobile Number</label>
-                            <input id="editMobileNumber" name="mobileNumber" class="form-control" />
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Blood Group</label>
-                            <input id="editBloodGroup" name="bloodGroup" class="form-control" />
-                        </div>
+                            </div>
+
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Mobile Number</label>
+                                    <input id="editMobileNumber" name="mobileNumber" class="form-control"
+                                           pattern="[0-9]{10}" maxlength="10"
+                                           title="Please enter a valid 10-digit mobile number" />
+                                    <div class="invalid-feedback">Please enter a valid 10-digit mobile number (numbers only).</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Blood Group</label>
+                                    <select id="editBloodGroup" name="bloodGroup" class="form-select">
+                                        <option value="">-- Select --</option>
+                                        <option value="A+">A+</option>
+                                        <option value="A-">A-</option>
+                                        <option value="B+">B+</option>
+                                        <option value="B-">B-</option>
+                                        <option value="AB+">AB+</option>
+                                        <option value="AB-">AB-</option>
+                                        <option value="O+">O+</option>
+                                        <option value="O-">O-</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Salary</label>
+                                    <input type="number"
+                                           id="editSalary"
+                                           name="salary"
+                                           class="form-control"
+                                           min="0"
+                                           step="0.01"
+                                           placeholder="Enter salary" />
+                                    <div class="invalid-feedback">Please enter a valid salary amount (0 or greater).</div>
+                                </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Reporting To</label>
                                     <select id="editReportingToUserId" name="reportingToUserId" class="form-select">
@@ -600,14 +1047,24 @@
                                         }
                                     </select>
                                 </div>
+                            </div>
+
+                            <div class="row g-3 mb-3">
                                 <div class="col-md-6">
                                     <label class="form-label">Date Of Birth</label>
-                                    <input type="date" id="editDateOfBirth" name="dateOfBirth" class="form-control" />
+                                    <input type="date" id="editDateOfBirth" name="dateOfBirth" class="form-control"
+                                           max="@DateTime.Now.AddYears(-18).ToString("yyyy-MM-dd")" />
+                                    <div class="invalid-feedback">Employee must be at least 18 years old.</div>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Date Of Joining</label>
-                                    <input type="date" id="editDateOfJoining" name="dateOfJoining" class="form-control" />
+                                    <input type="date" id="editDateOfJoining" name="dateOfJoining" class="form-control"
+                                           max="@DateTime.Now.ToString("yyyy-MM-dd")" />
+                                    <div class="invalid-feedback">Date of joining cannot be in the future.</div>
                                 </div>
+                            </div>
+
+                            <div class="row g-3">
                                 <div class="col-md-6">
                                     <label class="form-label">Gender</label>
                                     <select id="editGender" name="gender" class="form-select">
@@ -622,9 +1079,8 @@
 
                         <!-- EDUCATION DETAILS TAB -->
                         <div class="tab-pane fade" id="edit-tab-education" role="tabpanel">
-                            <!-- Add New Education Form -->
                             <div class="row g-3 mb-3">
-                                <div class="col-md-4">
+                                <div class="col-md-6">
                                     <label class="form-label">Education Level</label>
                                     <select id="empEditEduLevel" class="form-select">
                                         <option value="">-- Select --</option>
@@ -638,12 +1094,14 @@
                                     </select>
                                 </div>
 
-                                <div class="col-md-4 d-none" id="empEditOtherLevelDiv">
+                                <div class="col-md-6 d-none" id="empEditOtherLevelDiv">
                                     <label class="form-label">Specify Education Level</label>
                                     <input id="empEditOtherLevel" class="form-control" placeholder="Enter education level" />
                                 </div>
+                            </div>
 
-                                <div class="col-md-4 d-none" id="empEditDegreeDiv">
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6 d-none" id="empEditDegreeDiv">
                                     <label class="form-label">Degree</label>
                                     <select id="empEditDegreeName" class="form-select">
                                         <option value="">-- Select --</option>
@@ -659,12 +1117,14 @@
                                     </select>
                                 </div>
 
-                                <div class="col-md-4">
+                                <div class="col-md-6">
                                     <label class="form-label">Institute</label>
                                     <input id="empEditEduInstitute" class="form-control" />
                                 </div>
+                            </div>
 
-                                <div class="col-md-4">
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
                                     <label class="form-label">Year</label>
                                     <select id="empEditEduYear" class="form-select">
                                         <option value="">-- Select Year --</option>
@@ -675,7 +1135,7 @@
                                     </select>
                                 </div>
 
-                                <div class="col-md-4">
+                                <div class="col-md-6">
                                     <label class="form-label">Percentage / CGPA</label>
                                     <div class="input-group">
                                         <input id="empEditEduScore" class="form-control"
@@ -684,32 +1144,35 @@
                                     </div>
                                     <small class="text-muted" id="empEditScoreHelp">Enter score</small>
                                 </div>
+                            </div>
 
-                                <div class="col-md-4">
+                            <div class="row g-3 mb-3">
+                                <div class="col-12">
                                     <button type="button"
-                                            class="btn btn-primary w-100 mt-4"
+                                            class="btn btn-primary"
                                             onclick="addEducationToEmployee()">
-                                        + Add
+                                        + Add Education
                                     </button>
                                 </div>
                             </div>
 
-                            <!-- Education Table -->
-                            <table class="table table-sm table-bordered">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Level</th>
-                                        <th>Degree</th>
-                                        <th>Institute</th>
-                                        <th>Year</th>
-                                        <th>Score</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="editEducationTable">
-                                    <!-- Filled dynamically -->
-                                </tbody>
-                            </table>
+                            <hr class="my-3" />
+
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Level</th>
+                                            <th>Degree</th>
+                                            <th>Institute</th>
+                                            <th>Year</th>
+                                            <th>Score</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="editEducationTable"></tbody>
+                                </table>
+                            </div>
                         </div>
 
                         <!-- DOCUMENTS TAB -->
@@ -725,7 +1188,7 @@
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
                         <i class="bi bi-x-lg me-1"></i> Cancel
                     </button>
-                    <button type="submit" class="btn btn-primary">
+                    <button type="button" class="btn btn-primary" onclick="validateAndSubmitEditForm()">
                         <i class="bi bi-check-lg me-1"></i> Update
                     </button>
                 </div>
@@ -738,9 +1201,342 @@
     <script>
         window.appConfig = {
             currentYear: @currentYear
-        };
+                };
     </script>
 
     <script src="~/js/employees.js"></script>
-}
 
+    <script>
+        // ============================================================
+        // ADD FORM VALIDATION
+        // ============================================================
+        function validateAndSubmitAddForm() {
+            const form = document.getElementById('addEmployeeForm');
+
+            form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+
+            let isValid = true;
+
+            const firstName = form.querySelector('input[name="FirstName"]');
+            if (!firstName.value.trim() || firstName.value.trim().length < 2) {
+                firstName.classList.add('is-invalid');
+                isValid = false;
+            }
+
+            const lastName = form.querySelector('input[name="LastName"]');
+            if (!lastName.value.trim() || lastName.value.trim().length < 2) {
+                lastName.classList.add('is-invalid');
+                isValid = false;
+            }
+
+            const email = form.querySelector('input[name="Email"]');
+            const emailRegex = /^[a-zA-Z0-9._%+-]+@@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+            if (!email.value.trim() || !emailRegex.test(email.value.trim())) {
+                email.classList.add('is-invalid');
+                isValid = false;
+            }
+
+            const role = form.querySelector('select[name="RoleId"]');
+            if (!role.value) {
+                role.classList.add('is-invalid');
+                isValid = false;
+            }
+
+            const mobile = form.querySelector('input[name="MobileNumber"]');
+            if (mobile.value.trim()) {
+                const mobileRegex = /^[0-9]{10}$/;
+                if (!mobileRegex.test(mobile.value.trim())) {
+                    mobile.classList.add('is-invalid');
+                    isValid = false;
+                }
+            }
+
+            const dob = form.querySelector('input[name="DateOfBirth"]');
+            if (dob.value) {
+                const dobDate = new Date(dob.value);
+                const minDate = new Date();
+                minDate.setFullYear(minDate.getFullYear() - 18);
+                if (dobDate > minDate) {
+                    dob.classList.add('is-invalid');
+                    isValid = false;
+                }
+            }
+
+            const doj = form.querySelector('input[name="DateOfJoining"]');
+            if (doj.value) {
+                const dojDate = new Date(doj.value);
+                const today = new Date();
+                if (dojDate > today) {
+                    doj.classList.add('is-invalid');
+                    isValid = false;
+                }
+            }
+
+            const salary = form.querySelector('input[name="Salary"]');
+            if (salary.value.trim() && parseFloat(salary.value) < 0) {
+                salary.classList.add('is-invalid');
+                isValid = false;
+            }
+
+            const profilePic = document.getElementById('addProfilePictureFile');
+            if (profilePic.files && profilePic.files[0]) {
+                const file = profilePic.files[0];
+                const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+                const maxSize = 5 * 1024 * 1024;
+
+                if (!allowedTypes.includes(file.type)) {
+                    profilePic.classList.add('is-invalid');
+                    isValid = false;
+                } else if (file.size > maxSize) {
+                    profilePic.classList.add('is-invalid');
+                    isValid = false;
+                }
+            }
+
+            if (!isValid) {
+                const firstInvalid = form.querySelector('.is-invalid');
+                if (firstInvalid) {
+                    firstInvalid.focus();
+                    firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                showToast('Please fix the validation errors before submitting.', 'warning');
+                return;
+            }
+
+            forceSubmitEmployeeForm();
+        }
+
+        // ============================================================
+        // EDIT FORM VALIDATION
+        // ============================================================
+        function validateAndSubmitEditForm() {
+            const form = document.getElementById('editEmployeeForm');
+
+            form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+
+            let isValid = true;
+
+            const firstName = document.getElementById('editFirstName');
+            if (!firstName.value.trim() || firstName.value.trim().length < 2) {
+                firstName.classList.add('is-invalid');
+                isValid = false;
+            }
+
+            const lastName = document.getElementById('editLastName');
+            if (!lastName.value.trim() || lastName.value.trim().length < 2) {
+                lastName.classList.add('is-invalid');
+                isValid = false;
+            }
+
+            const role = document.getElementById('editRole');
+            if (!role.value) {
+                role.classList.add('is-invalid');
+                isValid = false;
+            }
+
+            const mobile = document.getElementById('editMobileNumber');
+            if (mobile.value.trim()) {
+                const mobileRegex = /^[0-9]{10}$/;
+                if (!mobileRegex.test(mobile.value.trim())) {
+                    mobile.classList.add('is-invalid');
+                    isValid = false;
+                }
+            }
+
+            const dob = document.getElementById('editDateOfBirth');
+            if (dob.value) {
+                const dobDate = new Date(dob.value);
+                const minDate = new Date();
+                minDate.setFullYear(minDate.getFullYear() - 18);
+                if (dobDate > minDate) {
+                    dob.classList.add('is-invalid');
+                    isValid = false;
+                }
+            }
+
+            const doj = document.getElementById('editDateOfJoining');
+            if (doj.value) {
+                const dojDate = new Date(doj.value);
+                const today = new Date();
+                if (dojDate > today) {
+                    doj.classList.add('is-invalid');
+                    isValid = false;
+                }
+            }
+
+            const salary = document.getElementById('editSalary');
+            if (salary.value.trim() && parseFloat(salary.value) < 0) {
+                salary.classList.add('is-invalid');
+                isValid = false;
+            }
+
+            const profilePic = document.getElementById('editProfilePictureFile');
+            if (profilePic.files && profilePic.files[0]) {
+                const file = profilePic.files[0];
+                const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+                const maxSize = 5 * 1024 * 1024;
+
+                if (!allowedTypes.includes(file.type)) {
+                    profilePic.classList.add('is-invalid');
+                    isValid = false;
+                } else if (file.size > maxSize) {
+                    profilePic.classList.add('is-invalid');
+                    isValid = false;
+                }
+            }
+
+            if (!isValid) {
+                const firstInvalid = form.querySelector('.is-invalid');
+                if (firstInvalid) {
+                    firstInvalid.focus();
+                    firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                showToast('Please fix the validation errors before submitting.', 'warning');
+                return;
+            }
+
+            form.submit();
+        }
+
+        // ============================================================
+        // LIVE VALIDATION ON INPUT
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', function () {
+            const addForm = document.getElementById('addEmployeeForm');
+            if (addForm) {
+                addForm.querySelectorAll('input, select').forEach(input => {
+                    input.addEventListener('blur', function () {
+                        validateField(this);
+                    });
+                    input.addEventListener('input', function () {
+                        if (this.classList.contains('is-invalid')) {
+                            validateField(this);
+                        }
+                    });
+                });
+            }
+
+            const editForm = document.getElementById('editEmployeeForm');
+            if (editForm) {
+                editForm.querySelectorAll('input, select').forEach(input => {
+                    input.addEventListener('blur', function () {
+                        validateField(this);
+                    });
+                    input.addEventListener('input', function () {
+                        if (this.classList.contains('is-invalid')) {
+                            validateField(this);
+                        }
+                    });
+                });
+            }
+        });
+
+        function validateField(input) {
+            if (input.readOnly) return;
+
+            input.classList.remove('is-invalid');
+
+            if (input.hasAttribute('required') && !input.value.trim()) {
+                input.classList.add('is-invalid');
+                return;
+            }
+
+            if (input.type === 'email' && input.value.trim()) {
+                const emailRegex = /^[a-zA-Z0-9._%+-]+@@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+                if (!emailRegex.test(input.value.trim())) {
+                    input.classList.add('is-invalid');
+                    return;
+                }
+            }
+
+            if (input.type === 'tel' && input.value.trim()) {
+                const mobileRegex = /^[0-9]{10}$/;
+                if (!mobileRegex.test(input.value.trim())) {
+                    input.classList.add('is-invalid');
+                    return;
+                }
+            }
+
+            if (input.type === 'number' && input.value.trim()) {
+                if (parseFloat(input.value) < 0) {
+                    input.classList.add('is-invalid');
+                    return;
+                }
+            }
+
+            if (input.type === 'date' && input.value) {
+                if (input.name && input.name.toLowerCase().includes('dateofbirth')) {
+                    const dobDate = new Date(input.value);
+                    const minDate = new Date();
+                    minDate.setFullYear(minDate.getFullYear() - 18);
+                    if (dobDate > minDate) {
+                        input.classList.add('is-invalid');
+                        return;
+                    }
+                }
+                if (input.name && input.name.toLowerCase().includes('dateofjoining')) {
+                    const dojDate = new Date(input.value);
+                    const today = new Date();
+                    if (dojDate > today) {
+                        input.classList.add('is-invalid');
+                        return;
+                    }
+                }
+            }
+
+            if (input.hasAttribute('pattern') && input.value.trim()) {
+                const regex = new RegExp(input.getAttribute('pattern'));
+                if (!regex.test(input.value.trim())) {
+                    input.classList.add('is-invalid');
+                    return;
+                }
+            }
+        }
+        function toggleDocumentTypeOther(select) {
+            const otherDiv = document.getElementById('addDocTypeOtherDiv');
+            if (select.value === 'Other') {
+                otherDiv.classList.remove('d-none');
+            } else {
+                otherDiv.classList.add('d-none');
+                document.getElementById('addDocTypeOther').value = '';
+            }
+        }
+
+        // ============================================================
+        // TOAST HELPER
+        // ============================================================
+        function showToast(message, type) {
+            type = type || 'info';
+            let toastContainer = document.getElementById('toast-container');
+            if (!toastContainer) {
+                toastContainer = document.createElement('div');
+                toastContainer.id = 'toast-container';
+                toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+                document.body.appendChild(toastContainer);
+            }
+
+            const toastId = 'toast-' + Date.now();
+            let bgClass = 'text-bg-danger';
+            if (type === 'success') bgClass = 'text-bg-success';
+            else if (type === 'warning') bgClass = 'text-bg-warning';
+            else if (type === 'info') bgClass = 'text-bg-info';
+
+            const toastHtml =
+                '<div id="' + toastId + '" class="toast align-items-center ' + bgClass + ' border-0" role="alert">' +
+                '<div class="d-flex">' +
+                '<div class="toast-body">' + message + '</div>' +
+                '<button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>' +
+                '</div>' +
+                '</div>';
+
+            toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+            const toastElement = document.getElementById(toastId);
+            const toast = new bootstrap.Toast(toastElement);
+            toast.show();
+
+            toastElement.addEventListener('hidden.bs.toast', function () {
+                toastElement.remove();
+            });
+        }
+    </script>
+}

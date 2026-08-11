@@ -5,7 +5,7 @@
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
 
     int selectedYear = Context.Request.Query["year"].FirstOrDefault() != null
-        ? int.Parse(Context.Request.Query["year"]) 
+        ? int.Parse(Context.Request.Query["year"])
         : DateTime.Now.Year;
 
     int? roleId = Context.Session.GetInt32("RoleId");
@@ -24,18 +24,16 @@
                 <option value="@y" selected="@(y == ViewBag.SelectedYear)">
                     @y
                 </option>
-            }  
+            }
         </select>
 
-        @if (isAdmin) 
+        @if (isAdmin)
         {
             <button class="btn btn-primary"
                     data-bs-toggle="modal"
                     data-bs-target="#addHolidayModal">
                 +
             </button>
-
-
 
             <button class="btn btn-outline-primary"
                     data-bs-toggle="modal"
@@ -61,7 +59,7 @@
         <table class="table table-hover mb-0 align-middle">
             <thead class="table-light">
                 <tr>
-                    <th style="width:80px;">Id</th>
+                    <th style="width:80px;">Sr. No</th>
                     <th>Name</th>
                     <th>Date</th>
                     @if (isAdmin)
@@ -72,10 +70,13 @@
             </thead>
 
             <tbody>
+                @{
+                    int srNo = 1;
+                }
                 @foreach (var h in Model.Where(h => h.HolidayDate.Year == selectedYear))
                 {
                     <tr>
-                        <td>@h.Id</td>
+                        <td>@srNo</td>
                         <td>@h.Name</td>
                         <td>@h.HolidayDate.ToString("dd MMM yyyy")</td>
 
@@ -116,6 +117,7 @@
                             </td>
                         }
                     </tr>
+                    srNo++;
                 }
             </tbody>
         </table>
@@ -148,6 +150,19 @@
                                    class="form-control"
                                    required />
                         </div>
+                        <div class="mb-3">
+                            <label>Type</label>
+                            <select name="Type" class="form-select">
+                                <option value="National">National</option>
+                                <option value="Optional">Optional</option>
+                                <option value="Festival">Festival</option>
+                                <option value="Company">Company</option>
+                            </select>
+                        </div>
+                        <div class="form-check">
+                            <input type="checkbox" name="IsHalfDay" class="form-check-input" />
+                            <label class="form-check-label">Half Day Holiday</label>
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -163,7 +178,7 @@
         <div class="modal-dialog modal-md modal-dialog-centered">
             <div class="modal-content shadow">
                 <div class="modal-header">
-                    <h5 class="modal-title">+Edit</h5>
+                    <h5 class="modal-title">Edit Holiday</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
 
@@ -186,10 +201,10 @@
                         <div class="mb-3">
                             <label>Type</label>
                             <select name="Type" id="editType" class="form-select">
-                                <option>National</option>
-                                <option>Optional</option>
-                                <option>Festival</option>
-                                <option>Company</option>
+                                <option value="National">National</option>
+                                <option value="Optional">Optional</option>
+                                <option value="Festival">Festival</option>
+                                <option value="Company">Company</option>
                             </select>
                         </div>
 
@@ -200,8 +215,8 @@
                     </div>
 
                     <div class="modal-footer">
-                        <button type="submit" class="btn btn-primary">💾 Save Changes</button>
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">💾 Save Changes</button>
                     </div>
                 </form>
             </div>
@@ -340,63 +355,3 @@
     </script>
 
 }
-<!-- ================= ADD HOLIDAY MODAL ================= -->
-<div class="modal fade" id="addHolidayModal" tabindex="-1">
-    <div class="modal-dialog modal-md modal-dialog-centered">
-        <div class="modal-content">
-
-            <div class="modal-header">
-                <h5 class="modal-title">Add Holiday</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-
-            <form asp-action="CreateHoliday"
-                  asp-controller="Admin"
-                  method="post">
-                @Html.AntiForgeryToken()
-
-                <div class="modal-body">
-
-                    <div class="mb-3">
-                        <label class="form-label">Holiday Name</label>
-                        <input name="Name" class="form-control" required />
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Holiday Date</label>
-                        <input type="date" name="HolidayDate" class="form-control" required />
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Type</label>
-                        <select name="Type" class="form-select">
-                            <option value="National">National</option>
-                            <option value="Optional">Optional</option>
-                            <option value="Company">Company</option>
-                        </select>
-                    </div>
-
-                    <div class="form-check">
-                        <input type="checkbox" name="IsHalfDay" class="form-check-input" />
-                        <label class="form-check-label">Half Day</label>
-                    </div>
-
-                </div>
-
-                <div class="modal-footer">
-                    <button type="button"
-                            class="btn btn-secondary"
-                            data-bs-dismiss="modal">
-                        Cancel
-                    </button>
-
-                    <button type="submit"
-                            class="btn btn-primary">
-                        Save
-                    </button>
-                </div>
-
-            </form>
-        </div>
-    </div>
-</div>
