@@ -205,52 +205,107 @@ namespace SquadInternal.Controllers
         [AuthorizeAdmin]
         [HttpPost]
         [ValidateAntiForgeryToken]
+       
         public async Task<IActionResult> CreateEmployee(CreateEmployeeVM model)
         {
+            // -----------------------------------------
+            // 1. Validate Model
+            // -----------------------------------------
             if (!ModelState.IsValid)
             {
                 TempData["Error"] = "Invalid data submitted.";
                 return RedirectToAction("Employees");
             }
 
-            if (await _db.Users.AnyAsync(u => u.Email == model.Email && u.IsActive))
+            // -----------------------------------------
+            // 2. Get logged-in Admin
+            // -----------------------------------------
+            var currentUserId = HttpContext.Session.GetInt32("UserId");
+
+            if (currentUserId == null)
+            {
+                TempData["Error"] = "Your session has expired. Please login again.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            // -----------------------------------------
+            // 3. Check duplicate email
+            // -----------------------------------------
+            var email = model.Email?.Trim();
+
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                TempData["Error"] = "Email is required.";
+                return RedirectToAction("Employees");
+            }
+
+            if (await _db.Users.AnyAsync(u =>
+                u.Email == email &&
+                u.IsActive))
             {
                 TempData["Error"] = "Email already exists.";
                 return RedirectToAction("Employees");
             }
 
-            // Create User
+            // -----------------------------------------
+            // 4. Create User
+            // -----------------------------------------
             var user = new User
             {
-                Name = model.FirstName + " " + model.LastName,
-                Email = model.Email,
+                Name = $"{model.FirstName} {model.LastName}".Trim(),
+                Email = email,
                 RoleId = model.RoleId,
                 IsActive = true,
                 CreatedDate = DateTime.Now
             };
 
             _db.Users.Add(user);
+
             await _db.SaveChangesAsync();
 
-            // Create Employee
+            // -----------------------------------------
+            // 5. Create Employee
+            // -----------------------------------------
             var employee = new Employee
             {
-                FirstName = model.FirstName,
-                LastName = model.LastName,
+                FirstName = model.FirstName?.Trim(),
+                LastName = model.LastName?.Trim(),
+
+                // New employee's login/user
                 UserId = user.Id,
+
+                // Admin/HR who created employee
+                AddedBy = currentUserId.Value,
+
                 ReportingToUserId = model.ReportingToUserId,
+
                 DateOfBirth = model.DateOfBirth,
                 DateOfJoining = model.DateOfJoining,
                 Gender = model.Gender,
+
+                // IMPORTANT
+                Salary = model.Salary,
+
+                MobileNumber = string.IsNullOrWhiteSpace(model.MobileNumber)
+                    ? null
+                    : model.MobileNumber.Trim(),
+
+                BloodGroup = string.IsNullOrWhiteSpace(model.BloodGroup)
+                    ? null
+                    : model.BloodGroup.Trim(),
+
                 IsActive = true,
                 IsDeleted = false,
                 AddedDate = DateTime.Now
             };
 
             _db.Employees.Add(employee);
+
             await _db.SaveChangesAsync();
 
-            // Save Educations
+            // -----------------------------------------
+            // 6. Save Educations
+            // -----------------------------------------
             if (model.Educations != null && model.Educations.Any())
             {
                 foreach (var edu in model.Educations)
@@ -258,8 +313,13 @@ namespace SquadInternal.Controllers
                     _db.EmployeeEducations.Add(new EmployeeEducation
                     {
                         EmployeeId = employee.Id,
+
                         Level = edu.Level,
-                        LevelOther = edu.Level == "Other" ? edu.LevelOther : null,
+
+                        LevelOther = edu.Level == "Other"
+                            ? edu.LevelOther
+                            : null,
+
                         Stream = edu.Stream,
                         Institute = edu.Institute,
                         PassingYear = edu.PassingYear,
@@ -270,7 +330,84 @@ namespace SquadInternal.Controllers
                 await _db.SaveChangesAsync();
             }
 
-            TempData["Success"] = "Employee created successfully.";
+            // -----------------------------------------
+            // 7. Save Documents
+            // -----------------------------------------
+            var files = Request.Form.Files;
+
+            if (files.Count > 0)
+            {
+                int docIdx = 0;
+
+                foreach (var file in files)
+                {
+                    if (file == null || file.Length == 0)
+                    {
+                        docIdx++;
+                        continue;
+                    }
+
+                    try
+                    {
+                        var docType =
+                            Request.Form[$"Documents[{docIdx}].DocumentType"]
+                            .ToString();
+
+                        var docTypeOther =
+                            Request.Form[$"Documents[{docIdx}].DocumentTypeOther"]
+                            .ToString();
+
+                        if (!string.IsNullOrWhiteSpace(docType))
+                        {
+                            var blobName =
+                                await _blobStorageService.UploadAsync(
+                                    file,
+                                    employee.Id);
+
+                            _db.EmployeeDocuments.Add(
+                                new EmployeeDocument
+                                {
+                                    EmployeeId = employee.Id,
+
+                                    DocumentType = docType,
+
+                                    DocumentTypeOther =
+                                        docType == "Other"
+                                            ? docTypeOther
+                                            : null,
+
+                                    DocumentName =
+                                        Path.GetFileName(file.FileName),
+
+                                    FilePath = blobName,
+
+                                    UploadedDate = DateTime.UtcNow
+                                });
+                        }
+
+                        docIdx++;
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(
+                            $"Error uploading document: {ex.Message}");
+
+                        docIdx++;
+                    }
+                }
+
+                if (_db.ChangeTracker.HasChanges())
+                {
+                    await _db.SaveChangesAsync();
+                }
+            }
+
+            // -----------------------------------------
+            // 8. Success
+            // -----------------------------------------
+            TempData["Success"] =
+                "Employee created successfully.";
+
             return RedirectToAction("Employees");
         }
 

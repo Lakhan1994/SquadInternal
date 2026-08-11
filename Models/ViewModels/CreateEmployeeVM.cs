@@ -1,6 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using System;
-using System.Collections.Generic;
+﻿
 using System.ComponentModel.DataAnnotations;
 
 namespace SquadInternal.Models.ViewModels
@@ -10,6 +8,8 @@ namespace SquadInternal.Models.ViewModels
     // ================================
     public class CreateEmployeeVM
     {
+        public string? MobileNumber { get; set; }
+
         [Required]
         [StringLength(50)]
         public string FirstName { get; set; } = string.Empty;
@@ -42,6 +42,8 @@ namespace SquadInternal.Models.ViewModels
 
         // Document uploads
         public List<EmployeeDocumentVM> Documents { get; set; } = new();
+        public decimal? Salary { get;  set; }
+        public string? BloodGroup { get;  set; }
     }
 
     // ================================

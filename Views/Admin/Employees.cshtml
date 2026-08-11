@@ -132,7 +132,8 @@
             <form id="addEmployeeForm"
                   asp-action="CreateEmployee"
                   asp-controller="Admin"
-                  method="post">
+                  method="post"
+                  enctype="multipart/form-data">
                 @Html.AntiForgeryToken()
 
                 <div class="modal-body">
@@ -147,12 +148,31 @@
                                 Education Details
                             </a>
                         </li>
-                    </ul>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#documents">
+                                Documents
+                            </a>
+                        </li>
                     </ul>
 
                     <div class="tab-content">
-                        <!-- PERSONAL -->
-                        <div class="tab-pane fade show active" id="tab-personal" role="tabpanel">
+                        <!-- PERSONAL DETAILS -->
+                        <div class="tab-pane fade show active" id="personal" role="tabpanel">
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <div class="d-flex align-items-start gap-3">
+                                        <div class="position-relative flex-shrink-0">
+                                            <img id="addProfilePicturePreview" src="" alt="Profile" class="emp-avatar-img" style="width:72px;height:72px;display:none;" />
+                                            <span id="addProfileInitials" class="emp-avatar-initials" style="width:72px;height:72px;font-size:22px;">--</span>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <label class="form-label mb-1">Profile Picture</label>
+                                            <input type="file" id="addProfilePictureFile" name="profilePictureFile" accept=".jpg,.jpeg,.png,.webp" class="form-control form-control-sm" />
+                                            <small class="text-muted">JPG, PNG or WEBP. Max 5 MB.</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label class="form-label">First Name</label>
@@ -178,6 +198,38 @@
                                             }
                                         }
                                     </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Mobile Number</label>
+                                    <input type="tel"
+                                           class="form-control"
+                                           name="MobileNumber"
+                                           placeholder="Enter mobile number" />
+                                </div>
+
+                                <div class="col-md-3">
+                                    <label class="form-label">Blood Group</label>
+                                    <select class="form-select" name="BloodGroup">
+                                        <option value="">-- Select --</option>
+                                        <option value="A+">A+</option>
+                                        <option value="A-">A-</option>
+                                        <option value="B+">B+</option>
+                                        <option value="B-">B-</option>
+                                        <option value="AB+">AB+</option>
+                                        <option value="AB-">AB-</option>
+                                        <option value="O+">O+</option>
+                                        <option value="O-">O-</option>
+                                    </select>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <label class="form-label">Salary</label>
+                                    <input type="number"
+                                           class="form-control"
+                                           name="Salary"
+                                           min="0"
+                                           step="0.01"
+                                           placeholder="Enter salary" />
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Reporting To</label>
@@ -213,7 +265,7 @@
                         </div>
 
                         <!-- EDUCATION -->
-                        <div class="tab-pane fade" id="tab-education" role="tabpanel">
+                        <div class="tab-pane fade" id="education" role="tabpanel">
                             <div class="row g-3 mb-3">
                                 <div class="col-md-4">
                                     <label class="form-label">Education Level</label>
@@ -299,6 +351,55 @@
                                 </thead>
                                 <tbody id="eduTableBody"></tbody>
                             </table>
+                        </div>
+
+                        <!-- DOCUMENTS TAB -->
+                        <div class="tab-pane fade" id="documents" role="tabpanel">
+                            <div class="row g-2 align-items-end mb-4">
+                                <div class="col-md-3">
+                                    <label class="form-label">Document Type</label>
+                                    <select id="addDocumentType" class="form-select">
+                                        <option value="">-- Select Type --</option>
+                                        <option value="Aadhar">Aadhar</option>
+                                        <option value="PAN">PAN</option>
+                                        <option value="Passport">Passport</option>
+                                        <option value="Driving License">Driving License</option>
+                                        <option value="Voter ID">Voter ID</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3 d-none" id="addDocTypeOtherDiv">
+                                    <label class="form-label">Specify Type</label>
+                                    <input id="addDocTypeOther" class="form-control" placeholder="Enter document type" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Document File</label>
+                                    <input type="file" id="addDocumentFile" accept=".pdf,.jpg,.jpeg,.png,.webp" class="form-control" />
+                                    <small class="text-muted">PDF, JPG, PNG or WEBP. Max 5 MB.</small>
+                                </div>
+                                <div class="col-md-2">
+                                    <button type="button" class="btn btn-primary w-100" onclick="addDocumentForNewEmployee()">
+                                        + Add
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Document Type</th>
+                                            <th>File Name</th>
+                                            <th>Size</th>
+                                            <th style="width:80px;">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="addDocumentsTable">
+                                        <tr id="noDocumentsRow">
+                                            <td colspan="4" class="text-center text-muted py-3">No documents added yet</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -436,20 +537,24 @@
                     <div class="tab-content">
                         <!-- PERSONAL DETAILS TAB -->
                         <div class="tab-pane fade show active" id="edit-tab-personal" role="tabpanel">
-                            <div class="d-flex align-items-center gap-3 mb-4">
-                                <div class="position-relative">
-                                    <img id="editProfilePicturePreview" src="" alt="Profile" class="emp-avatar-img" style="width:72px;height:72px;display:none;" />
-                                    <span id="editProfileInitials" class="emp-avatar-initials" style="width:72px;height:72px;font-size:22px;"></span>
-                                </div>
-                                <div>
-                                    <label class="form-label mb-1">Profile Picture</label>
-                                    <input type="file" id="editProfilePictureFile" accept=".jpg,.jpeg,.png,.webp" class="form-control form-control-sm" />
-                                    <small class="text-muted">JPG, PNG or WEBP. Max 5 MB.</small>
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <div class="d-flex align-items-start gap-3">
+                                        <div class="position-relative flex-shrink-0">
+                                            <img id="editProfilePicturePreview" src="" alt="Profile" class="emp-avatar-img" style="width:72px;height:72px;display:none;" />
+                                            <span id="editProfileInitials" class="emp-avatar-initials" style="width:72px;height:72px;font-size:22px;"></span>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <label class="form-label mb-1">Profile Picture</label>
+                                            <input type="file" id="editProfilePictureFile" accept=".jpg,.jpeg,.png,.webp" class="form-control form-control-sm" />
+                                            <small class="text-muted">JPG, PNG or WEBP. Max 5 MB.</small>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             <div class="row g-3">
                                 <div class="col-md-6">
-
+                                    <label class="form-label">First Name</label>
                                     <input id="editFirstName" name="firstName" class="form-control" required />
                                 </div>
                                 <div class="col-md-6">

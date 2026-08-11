@@ -1,4 +1,4 @@
-﻿@model SquadInternal.Models.Employee
+@model SquadInternal.Models.Employee
 @using SquadInternal.Models
 
 @{
@@ -10,74 +10,169 @@
 }
 
 <div class="page-accent d-flex justify-content-between align-items-center">
-    <h3 class="m-0">+Edit</h3>
+    <h3 class="m-0">✎ Edit Employee</h3>
     <a asp-action="Employees" class="btn btn-light">Back</a>
 </div>
 
 <div class="card shadow-sm border-0 mt-3 p-4">
-    <form asp-action="EditEmployee" method="post">
+    <form asp-action="EditEmployee" method="post" enctype="multipart/form-data">
         @Html.AntiForgeryToken()
 
         <input type="hidden" asp-for="Id" />
 
-        <div class="row g-3">
-            <div class="col-md-6">
-                <label class="form-label">First Name</label>
-                <input asp-for="FirstName" class="form-control" required />
-            </div>
+        <!-- Tabs Navigation -->
+        <ul class="nav nav-tabs mb-4" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#personal-tab" type="button" role="tab">
+                    Personal Details
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#education-tab" type="button" role="tab">
+                    Education Details
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#documents-tab" type="button" role="tab">
+                    Documents
+                </button>
+            </li>
+        </ul>
 
-            <div class="col-md-6">
-                <label class="form-label">Last Name</label>
-                <input asp-for="LastName" class="form-control" required />
-            </div>
-
-            <div class="col-md-6">
-                <label class="form-label">Date of Birth</label>
-                <input asp-for="DateOfBirth" type="date" class="form-control" />
-            </div>
-
-            <div class="col-md-6">
-                <label class="form-label">Date of Joining</label>
-                <input asp-for="DateOfJoining" type="date" class="form-control" />
-            </div>
-
-            <div class="col-md-6">
-                <label class="form-label">Gender</label>
-                <select asp-for="Gender" class="form-select">
-                    <option value="">-- Select --</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
-                </select>
-            </div>
-
-            <div class="col-md-6">
-                <label class="form-label">Status</label>
-                <select asp-for="IsActive" class="form-select">
-                    <option value="true">Active</option>
-                    <option value="false">Inactive</option>
-                </select>
-            </div>
-
-            <div class="col-md-12">
-                <label class="form-label">Role</label>
-                <select name="roleId" class="form-select" required>
-                    <option value="">-- Select Role --</option>
-                    @if (roles != null)
-                    {
-                        foreach (var r in roles)
-                        {
-                            <option value="@r.Id" selected="@(r.Id == currentRoleId)">
-                                @r.Name
-                            </option>
+        <div class="tab-content">
+            <!-- PERSONAL DETAILS TAB -->
+            <div class="tab-pane fade show active" id="personal-tab" role="tabpanel">
+                <!-- Profile Picture Section -->
+                <div class="d-flex align-items-center gap-3 mb-4">
+                    <div class="position-relative">
+                        @{
+                            var listInitials = $"{Model.FirstName?.FirstOrDefault()}{Model.LastName?.FirstOrDefault()}".ToUpper();
                         }
-                    }
-                </select>
+                        @if (!string.IsNullOrWhiteSpace(Model.ProfilePicturePath))
+                        {
+                            <img id="profilePicturePreview" src="@Url.Action("GetProfilePicture", "Admin", new { employeeId = Model.Id })" alt="Profile" class="emp-avatar-img" style="width:72px;height:72px;" />
+                        }
+                        else
+                        {
+                            <span id="profileInitials" class="emp-avatar-initials" style="width:72px;height:72px;font-size:22px;">@listInitials</span>
+                        }
+                    </div>
+                    <div>
+                        <label class="form-label mb-1">Profile Picture</label>
+                        <input type="file" id="profilePictureFile" name="profilePictureFile" accept=".jpg,.jpeg,.png,.webp" class="form-control form-control-sm" />
+                        <small class="text-muted">JPG, PNG or WEBP. Max 5 MB.</small>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">First Name</label>
+                        <input asp-for="FirstName" class="form-control" required />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Last Name</label>
+                        <input asp-for="LastName" class="form-control" required />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Email</label>
+                        <input type="email" asp-for="User.Email" class="form-control" readonly />
+                        <small class="text-muted">Email cannot be changed</small>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Role</label>
+                        <select name="roleId" class="form-select" required>
+                            <option value="">-- Select Role --</option>
+                            @if (roles != null)
+                            {
+                                foreach (var r in roles)
+                                {
+                                    <option value="@r.Id" selected="@(r.Id == currentRoleId)">@r.Name</option>
+                                }
+                            }
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">Mobile Number</label>
+                        <input asp-for="MobileNumber" class="form-control" />
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">Blood Group</label>
+                        <input asp-for="BloodGroup" class="form-control" />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Reporting To</label>
+                        <select name="reportingToUserId" class="form-select">
+                            <option value="">-- Select Manager --</option>
+                            @if (ViewBag.ReportingManagers != null)
+                            {
+                                foreach (var manager in ViewBag.ReportingManagers as List<SquadInternal.Models.User>)
+                                {
+                                    <option value="@manager.Id" selected="@(manager.Id == Model.ReportingToUserId)">@manager.Name</option>
+                                }
+                            }
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Date of Birth</label>
+                        <input type="date" asp-for="DateOfBirth" class="form-control" />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Date of Joining</label>
+                        <input type="date" asp-for="DateOfJoining" class="form-control" />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Gender</label>
+                        <select asp-for="Gender" class="form-select">
+                            <option value="">-- Select --</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Status</label>
+                        <select asp-for="IsActive" class="form-select">
+                            <option value="true">Active</option>
+                            <option value="false">Inactive</option>
+                        </select>
+                    </div>
+                </div>
             </div>
 
-            <div class="col-12">
-                <button class="btn btn-primary">Update Employee</button>
+            <!-- EDUCATION DETAILS TAB -->
+            <div class="tab-pane fade" id="education-tab" role="tabpanel">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-12">
+                        <p class="text-muted">Education details can be managed from the employees list edit modal.</p>
+                    </div>
+                </div>
             </div>
+
+            <!-- DOCUMENTS TAB -->
+            <div class="tab-pane fade" id="documents-tab" role="tabpanel">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-12">
+                        <p class="text-muted">Documents can be managed from the employees list edit modal.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <button type="submit" class="btn btn-primary me-2">
+                <i class="bi bi-check-lg me-1"></i> Update Employee
+            </button>
+            <a asp-action="Employees" class="btn btn-outline-secondary">Cancel</a>
         </div>
     </form>
 </div>

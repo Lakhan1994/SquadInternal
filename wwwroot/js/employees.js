@@ -173,10 +173,140 @@ if (window._employeesJsInitialized) {
 
             // Reset score indicator
             updateScoreType(eduScore, 'scoreTypeIndicator');
+
+            // Reset documents
+            resetAddEmployeeDocuments();
         });
     }
 
+    /* =========================================================
+       ADD EMPLOYEE DOCUMENTS - CLIENT-SIDE STORAGE
+       ========================================================= */
+
+    let addEmployeeDocuments = [];
+    let docIndex = 0;
+
+    function resetAddEmployeeDocuments() {
+        addEmployeeDocuments = [];
+        docIndex = 0;
+        updateAddDocumentsTable();
+
+        // Reset form
+        document.getElementById("addDocumentType").value = "";
+        document.getElementById("addDocumentFile").value = "";
+        const otherDiv = document.getElementById("addDocTypeOtherDiv");
+        if (otherDiv) {
+            otherDiv.classList.add("d-none");
+            document.getElementById("addDocTypeOther").value = "";
+        }
+    }
+
+    window.addDocumentForNewEmployee = function() {
+        const docType = document.getElementById("addDocumentType")?.value || "";
+        const docTypeOther = document.getElementById("addDocTypeOther")?.value.trim() || "";
+        const docFile = document.getElementById("addDocumentFile")?.files[0];
+
+        if (!docType) {
+            showToast("Please select a document type", "warning");
+            return;
+        }
+
+        if (docType === "Other" && !docTypeOther) {
+            showToast("Please specify the document type", "warning");
+            return;
+        }
+
+        if (!docFile) {
+            showToast("Please select a file", "warning");
+            return;
+        }
+
+        // Check file size (5MB max)
+        const maxSize = 5 * 1024 * 1024; // 5MB
+        if (docFile.size > maxSize) {
+            showToast("File size must be less than 5MB", "danger");
+            return;
+        }
+
+        // Check file type
+        const allowedTypes = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
+        if (!allowedTypes.includes(docFile.type)) {
+            showToast("Only PDF, JPG, PNG or WEBP files are allowed", "danger");
+            return;
+        }
+
+        // Add document to storage
+        addEmployeeDocuments.push({
+            docType: docType,
+            docTypeOther: docType === "Other" ? docTypeOther : "",
+            file: docFile,
+            index: docIndex
+        });
+
+        docIndex++;
+        updateAddDocumentsTable();
+
+        // Reset form
+        document.getElementById("addDocumentType").value = "";
+        document.getElementById("addDocumentFile").value = "";
+        const otherDiv = document.getElementById("addDocTypeOtherDiv");
+        if (otherDiv) {
+            otherDiv.classList.add("d-none");
+            document.getElementById("addDocTypeOther").value = "";
+        }
+
+        showToast("Document added successfully", "success");
+    };
+
+    function updateAddDocumentsTable() {
+        const tableBody = document.getElementById("addDocumentsTable");
+        const noDocsRow = document.getElementById("noDocumentsRow");
+
+        if (addEmployeeDocuments.length === 0) {
+            tableBody.innerHTML = '<tr id="noDocumentsRow"><td colspan="4" class="text-center text-muted py-3">No documents added yet</td></tr>';
+            return;
+        }
+
+        let html = "";
+        addEmployeeDocuments.forEach((doc, idx) => {
+            const displayType = doc.docType === "Other" ? doc.docTypeOther : doc.docType;
+            const fileSize = (doc.file.size / 1024).toFixed(2); // Size in KB
+
+            html += `
+                <tr>
+                    <td>${escapeHtml(displayType)}</td>
+                    <td>${escapeHtml(doc.file.name)}</td>
+                    <td>${fileSize} KB</td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeAddEmployeeDocument(${idx})">
+                            <i class="bi bi-trash3"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+
+        tableBody.innerHTML = html;
+    }
+
+    window.removeAddEmployeeDocument = function(index) {
+        addEmployeeDocuments.splice(index, 1);
+        updateAddDocumentsTable();
+        showToast("Document removed", "info");
+    };
+
+    // Handle document type "Other" visibility
+    document.addEventListener("change", function(e) {
+        if (e.target && e.target.id === "addDocumentType") {
+            const otherDiv = document.getElementById("addDocTypeOtherDiv");
+            if (otherDiv) {
+                otherDiv.classList.toggle("d-none", e.target.value !== "Other");
+            }
+        }
+    });
+
 window.addEducation = function () {
+
 
     const level = document.getElementById("eduLevel")?.value || "";
     const otherLevel = document.getElementById("eduOtherLevel")?.value.trim() || "";
@@ -256,11 +386,126 @@ window.removeEducationRow = function (btn)
         }
     }
 
-    // Force submit Add Employee form
+    // Force submit Add Employee form with documents
 window.forceSubmitEmployeeForm = function ()
  {
         const form = document.getElementById("addEmployeeForm");
-        if (form) form.submit();
+        if (!form) return;
+
+        // If there are documents to upload, use FormData
+        if (addEmployeeDocuments && addEmployeeDocuments.length > 0) {
+            const formData = new FormData(form);
+
+            // Add documents to FormData
+            addEmployeeDocuments.forEach((doc, idx) => {
+                formData.append(`Documents[${idx}].DocumentType`, doc.docType);
+                formData.append(`Documents[${idx}].DocumentTypeOther`, doc.docTypeOther);
+                formData.append(`Documents[${idx}].File`, doc.file);
+            });
+
+            // Submit via fetch
+            const token = form.querySelector('input[name="__RequestVerificationToken"]')?.value;
+
+            fetch(form.getAttribute("action"), {
+                method: "POST",
+                headers: {
+                    "RequestVerificationToken": token || ""
+                },
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    window.location.href = response.url || form.getAttribute("action").replace("CreateEmployee", "Employees");
+                } else {
+                    return response.text().then(text => {
+                        throw new Error("Form submission failed");
+                    });
+                }
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                showToast("Error submitting form. Please try again.", "danger");
+            });
+        } else {
+            // No documents, submit normally
+            form.submit();
+        }
+    }
+
+    /* =========================================================
+       TAB VALIDATION FOR ADD EMPLOYEE MODAL
+       ========================================================= */
+
+    // Track which tab user is currently on
+    let currentAddEmployeeTab = 'personal';
+
+    // Validate Personal Details tab
+    function validatePersonalDetailsTab() {
+        const firstName = document.querySelector('input[name="FirstName"]');
+        const lastName = document.querySelector('input[name="LastName"]');
+        const email = document.querySelector('input[name="Email"]');
+        const roleId = document.querySelector('select[name="RoleId"]');
+
+        if (!firstName || !firstName.value.trim()) {
+            showToast('Please enter First Name', 'warning');
+            return false;
+        }
+
+        if (!lastName || !lastName.value.trim()) {
+            showToast('Please enter Last Name', 'warning');
+            return false;
+        }
+
+        if (!email || !email.value.trim()) {
+            showToast('Please enter Email', 'warning');
+            return false;
+        }
+
+        // Basic email validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email.value)) {
+            showToast('Please enter a valid Email', 'warning');
+            return false;
+        }
+
+        if (!roleId || !roleId.value) {
+            showToast('Please select a Role', 'warning');
+            return false;
+        }
+
+        return true;
+    }
+
+    // Setup tab switching with validation
+    window.initAddEmployeeTabValidation = function() {
+        const tabLinks = document.querySelectorAll('#addEmployeeForm .nav-link');
+
+        tabLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                // Get the target tab from href or data-bs-target
+                let targetTab = this.getAttribute('data-bs-target')?.substring(1) // Remove # from data-bs-target
+                             || this.getAttribute('href')?.substring(1); // Remove # from href
+
+                // If trying to switch away from personal tab, validate first
+                if (currentAddEmployeeTab === 'personal' && targetTab !== 'personal') {
+                    if (!validatePersonalDetailsTab()) {
+                        e.preventDefault();
+                        return false;
+                    }
+                }
+
+                // Update current tab
+                currentAddEmployeeTab = targetTab || 'personal';
+            });
+        });
+    };
+
+    // Initialize when modal is shown
+    const addEmployeeModal = document.getElementById('addEmployeeModal');
+    if (addEmployeeModal) {
+        addEmployeeModal.addEventListener('show.bs.modal', function() {
+            setTimeout(initAddEmployeeTabValidation, 500);
+        });
     }
 
     /* =========================================================
@@ -1016,8 +1261,15 @@ window.forceSubmitEmployeeForm = function ()
         }
 
         const toastId = 'toast-' + Date.now();
+
+        // Determine toast background color based on type
+        let bgClass = 'text-bg-danger';
+        if (type === 'success') bgClass = 'text-bg-success';
+        else if (type === 'warning') bgClass = 'text-bg-warning';
+        else if (type === 'info') bgClass = 'text-bg-info';
+
         const toastHtml = `
-            <div id="${toastId}" class="toast align-items-center text-bg-${type === 'success' ? 'success' : 'danger'} border-0" role="alert">
+            <div id="${toastId}" class="toast align-items-center ${bgClass} border-0" role="alert">
                 <div class="d-flex">
                     <div class="toast-body">
                         ${escapeHtml(message)}
