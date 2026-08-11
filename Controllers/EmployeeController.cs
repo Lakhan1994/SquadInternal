@@ -183,7 +183,8 @@ namespace SquadInternal.Controllers
                         model.LeaveType,
                         model.Reason,
                         model.Id,
-                        baseUrl
+                        baseUrl,
+                        admin.Name
                     );
 
                     string subject = days > 1
@@ -251,7 +252,8 @@ namespace SquadInternal.Controllers
                         leave.FromDate,
                         leave.ToDate,
                         leave.LeaveType,
-                        leave.Reason
+                        leave.Reason,
+                        admin.Name
                     );
 
                     _emailService.SendEmail(admin.Email, "Leave Cancelled", body);
