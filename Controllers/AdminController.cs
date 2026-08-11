@@ -205,7 +205,7 @@ namespace SquadInternal.Controllers
         [AuthorizeAdmin]
         [HttpPost]
         [ValidateAntiForgeryToken]
-       
+
         public async Task<IActionResult> CreateEmployee(CreateEmployeeVM model)
         {
             // -----------------------------------------
@@ -229,9 +229,9 @@ namespace SquadInternal.Controllers
             }
 
             // -----------------------------------------
-            // 3. Check duplicate email
+            // 3. Validate Email
             // -----------------------------------------
-            var email = model.Email?.Trim();
+            var email = model.Email?.Trim().ToLower();
 
             if (string.IsNullOrWhiteSpace(email))
             {
@@ -239,23 +239,37 @@ namespace SquadInternal.Controllers
                 return RedirectToAction("Employees");
             }
 
+            // -----------------------------------------
+            // 4. Check Duplicate Email
+            // -----------------------------------------
             if (await _db.Users.AnyAsync(u =>
-                u.Email == email &&
-                u.IsActive))
+                u.Email != null &&
+                u.Email.ToLower() == email))
             {
                 TempData["Error"] = "Email already exists.";
                 return RedirectToAction("Employees");
             }
 
             // -----------------------------------------
-            // 4. Create User
+            // 5. Create User
             // -----------------------------------------
+            var temporaryPassword =
+                 $"SqL@{Guid.NewGuid():N}".Substring(0, 12);
+
             var user = new User
             {
                 Name = $"{model.FirstName} {model.LastName}".Trim(),
                 Email = email,
+
                 RoleId = model.RoleId,
+
                 IsActive = true,
+
+                // Store only the hash.
+                // Never send this temporary password by email.
+                PasswordHash = _passwordService.HashPassword(
+                    temporaryPassword),
+
                 CreatedDate = DateTime.Now
             };
 
@@ -264,17 +278,16 @@ namespace SquadInternal.Controllers
             await _db.SaveChangesAsync();
 
             // -----------------------------------------
-            // 5. Create Employee
+            // 6. Create Employee
             // -----------------------------------------
             var employee = new Employee
             {
                 FirstName = model.FirstName?.Trim(),
                 LastName = model.LastName?.Trim(),
 
-                // New employee's login/user
                 UserId = user.Id,
 
-                // Admin/HR who created employee
+                // Admin who created employee
                 AddedBy = currentUserId.Value,
 
                 ReportingToUserId = model.ReportingToUserId,
@@ -283,7 +296,6 @@ namespace SquadInternal.Controllers
                 DateOfJoining = model.DateOfJoining,
                 Gender = model.Gender,
 
-                // IMPORTANT
                 Salary = model.Salary,
 
                 MobileNumber = string.IsNullOrWhiteSpace(model.MobileNumber)
@@ -304,7 +316,7 @@ namespace SquadInternal.Controllers
             await _db.SaveChangesAsync();
 
             // -----------------------------------------
-            // 6. Save Educations
+            // 7. Save Educations
             // -----------------------------------------
             if (model.Educations != null && model.Educations.Any())
             {
@@ -331,7 +343,7 @@ namespace SquadInternal.Controllers
             }
 
             // -----------------------------------------
-            // 7. Save Documents
+            // 8. Save Documents
             // -----------------------------------------
             var files = Request.Form.Files;
 
@@ -359,11 +371,13 @@ namespace SquadInternal.Controllers
 
                         if (!string.IsNullOrWhiteSpace(docType))
                         {
+                            // Upload document
                             var blobName =
                                 await _blobStorageService.UploadAsync(
                                     file,
                                     employee.Id);
 
+                            // Save document record
                             _db.EmployeeDocuments.Add(
                                 new EmployeeDocument
                                 {
@@ -384,29 +398,94 @@ namespace SquadInternal.Controllers
                                     UploadedDate = DateTime.UtcNow
                                 });
                         }
-
-                        docIdx++;
                     }
                     catch (Exception ex)
                     {
                         Console.WriteLine(
-                            $"Error uploading document: {ex.Message}");
+                            $"Error uploading document {file.FileName}: {ex}");
 
-                        docIdx++;
+                        // Continue processing remaining documents
                     }
+
+                    docIdx++;
                 }
 
+                // Save all documents
                 if (_db.ChangeTracker.HasChanges())
                 {
                     await _db.SaveChangesAsync();
                 }
             }
 
+            // ============================================================
+            // 9. SEND WELCOME EMAIL
+            // ============================================================
+            // IMPORTANT:
+            // This MUST be outside the document foreach loop.
+            // ============================================================
+
+            try
+            {
+                var portalUrl =
+                    "https://squadinternal.azurewebsites.net/Account/ForgotPassword";
+
+                // Get role name
+                var roleName = await _db.Roles
+                    .Where(r => r.Id == model.RoleId)
+                    .Select(r => r.Name)
+                    .FirstOrDefaultAsync();
+
+                if (string.IsNullOrWhiteSpace(roleName))
+                {
+                    roleName = "Employee";
+                }
+
+                var employeeName =
+                    $"{employee.FirstName} {employee.LastName}".Trim();
+
+                // Generate welcome email
+                var emailBody =
+                    _emailService.GetEmployeeWelcomeTemplate(
+                        employeeName,
+                        user.Email,
+                        roleName,
+                        portalUrl);
+
+                // Send welcome email
+                _emailService.SendEmail(
+                    user.Email,
+                    "Welcome to Squad Logic | Employee Portal Access",
+                    emailBody);
+
+                Console.WriteLine(
+                    $"Welcome email sent successfully to {user.Email}");
+            }
+            catch (Exception ex)
+            {
+                // IMPORTANT:
+                // Employee is already created.
+                // Don't delete employee if email fails.
+
+                Console.WriteLine(
+                    $"Welcome email failed for {user.Email}: {ex}");
+
+                TempData["Warning"] =
+                    "Employee created successfully, but the welcome email could not be sent.";
+            }
+
             // -----------------------------------------
-            // 8. Success
+            // 10. Success
             // -----------------------------------------
-            TempData["Success"] =
-                "Employee created successfully.";
+            if (TempData["Warning"] == null)
+            {
+                TempData["Success"] =
+                    "Employee created successfully and welcome email sent.";
+            }
+            else
+            {
+                TempData["Success"] =
+                    "Employee created successfully.";
+            }
 
             return RedirectToAction("Employees");
         }
