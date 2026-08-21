@@ -1,0 +1,956 @@
+﻿@model List<SquadInternal.Models.AssetCategory>
+
+@{
+    ViewData["Title"] = "Asset Categories";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<style>
+
+    /* =========================================================
+           PAGE HEADER
+           ========================================================= */
+
+    .asset-category-accent {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 0 16px 0;
+    }
+
+        .asset-category-accent h3 {
+            font-weight: 700;
+            color: #2c3e50;
+            margin: 0;
+        }
+
+
+    /* =========================================================
+           PRIMARY BUTTON
+           ========================================================= */
+
+    .btn-asset-primary {
+        border-radius: 8px;
+        font-weight: 600;
+        padding: 10px 24px;
+        background: linear-gradient(135deg, #6674f6 0%, #4d5bd4 100%);
+        color: #ffffff;
+        border: none;
+        box-shadow: 0 4px 12px rgba(77, 91, 212, 0.3);
+        transition: all 0.2s ease;
+    }
+
+        .btn-asset-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(77, 91, 212, 0.4);
+            color: #ffffff;
+        }
+
+        .btn-asset-primary:active {
+            transform: translateY(0);
+        }
+
+
+    /* =========================================================
+           CARD
+           ========================================================= */
+
+    .asset-category-card {
+        border-radius: 12px !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06) !important;
+        border: none !important;
+        overflow: hidden;
+    }
+
+
+    /* =========================================================
+           TABLE
+           ========================================================= */
+
+    .asset-category-table {
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+        .asset-category-table thead th {
+            background: #f8f9fa;
+            font-weight: 700;
+            color: #2c3e50;
+            border-bottom: 2px solid #e2e8f0;
+            padding: 14px 16px;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+
+        .asset-category-table tbody td {
+            padding: 12px 16px;
+            vertical-align: middle;
+            border-bottom: 1px solid #f0f2f5;
+        }
+
+        .asset-category-table tbody tr:hover {
+            background: #f8f9ff;
+        }
+
+
+    /* =========================================================
+           CATEGORY ICON
+           ========================================================= */
+
+    .category-icon {
+        width: 38px;
+        height: 38px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #6674f6 0%, #4d5bd4 100%);
+        color: #ffffff;
+        font-size: 17px;
+        box-shadow: 0 3px 8px rgba(77, 91, 212, 0.25);
+    }
+
+
+    /* =========================================================
+           CATEGORY NAME
+           ========================================================= */
+
+    .category-name {
+        font-weight: 600;
+        color: #2c3e50;
+    }
+
+    .category-description {
+        color: #6c757d;
+        font-size: 0.85rem;
+        max-width: 420px;
+    }
+
+
+    /* =========================================================
+           ASSET COUNT
+           ========================================================= */
+
+    .asset-count-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 36px;
+        padding: 5px 10px;
+        border-radius: 20px;
+        background: #eef0ff;
+        color: #4d5bd4;
+        font-weight: 700;
+        font-size: 0.8rem;
+    }
+
+
+    /* =========================================================
+           STATUS
+           ========================================================= */
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 0.78rem;
+        font-weight: 600;
+    }
+
+    .status-active {
+        background: #e8f7ee;
+        color: #198754;
+    }
+
+
+    /* =========================================================
+           ACTION BUTTONS
+           ========================================================= */
+
+    .btn-outline-primary {
+        border-radius: 8px;
+        font-weight: 600;
+        padding: 6px 12px;
+        border: 1.5px solid #4d5bd4;
+        color: #4d5bd4;
+        transition: all 0.2s ease;
+    }
+
+        .btn-outline-primary:hover {
+            background: #4d5bd4;
+            color: #ffffff;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(77, 91, 212, 0.3);
+        }
+
+    .btn-outline-danger {
+        border-radius: 8px;
+        font-weight: 600;
+        padding: 6px 12px;
+        border: 1.5px solid #dc3545;
+        color: #dc3545;
+        transition: all 0.2s ease;
+    }
+
+        .btn-outline-danger:hover {
+            background: #dc3545;
+            color: #ffffff;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+        }
+
+
+    /* =========================================================
+           MODAL
+           ========================================================= */
+
+    .asset-modal-content {
+        border-radius: 16px !important;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15) !important;
+        border: none !important;
+    }
+
+    .asset-modal-header {
+        border-bottom: 2px solid #f0f2f5;
+        padding: 20px 28px;
+        background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
+        border-radius: 16px 16px 0 0;
+    }
+
+    .asset-modal-title {
+        font-weight: 700;
+        color: #2c3e50;
+        font-size: 1.25rem;
+    }
+
+    .asset-modal-body {
+        padding: 28px;
+    }
+
+    .asset-modal-footer {
+        border-top: 2px solid #f0f2f5;
+        padding: 16px 28px;
+        background: #f8f9fa;
+        border-radius: 0 0 16px 16px;
+    }
+
+
+    /* =========================================================
+           FORM
+           ========================================================= */
+
+    .asset-form-label {
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 6px;
+        font-size: 0.9rem;
+    }
+
+    .required-star {
+        color: #dc3545;
+        font-weight: 700;
+        margin-left: 3px;
+    }
+
+    .asset-form-control {
+        border-radius: 8px;
+        border: 1.5px solid #e2e8f0;
+        padding: 10px 14px;
+        transition: all 0.2s ease;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+        .asset-form-control:focus {
+            border-color: #4d5bd4;
+            box-shadow: 0 0 0 4px rgba(77, 91, 212, 0.12);
+            outline: none;
+        }
+
+    .asset-form-help {
+        color: #6c757d;
+        font-size: 0.8rem;
+        margin-top: 5px;
+    }
+
+
+    /* =========================================================
+           EMPTY STATE
+           ========================================================= */
+
+    .asset-empty-state {
+        padding: 50px 20px !important;
+        text-align: center;
+        color: #6c757d;
+    }
+
+        .asset-empty-state i {
+            font-size: 42px;
+            color: #cbd5e0;
+            margin-bottom: 12px;
+            display: block;
+        }
+
+</style>
+
+
+<!-- =========================================================
+     ALERTS
+     ========================================================= -->
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger mt-3">
+        <i class="bi bi-exclamation-circle me-2"></i>
+        @TempData["Error"]
+    </div>
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success mt-3">
+        <i class="bi bi-check-circle me-2"></i>
+        @TempData["Success"]
+    </div>
+}
+
+
+<!-- =========================================================
+     PAGE HEADER
+     ========================================================= -->
+
+<div class="asset-category-accent">
+
+    <h3>
+        Asset Categories
+    </h3>
+
+    <button class="btn btn-asset-primary"
+            data-bs-toggle="modal"
+            data-bs-target="#addAssetCategoryModal">
+
+        <i class="bi bi-plus-lg me-1"></i>
+        Add
+
+    </button>
+
+</div>
+
+
+<!-- =========================================================
+     CATEGORY TABLE
+     ========================================================= -->
+
+<div class="card asset-category-card shadow-sm border-0 mt-3">
+
+    <div class="table-responsive">
+
+        <table class="table table-hover mb-0 asset-category-table">
+
+            <thead class="table-light">
+
+                <tr>
+
+                    <th style="width:80px;">
+                        Sr. No
+                    </th>
+
+                    <th style="width:70px;">
+                        Icon
+                    </th>
+
+                    <th>
+                        Category Name
+                    </th>
+
+                    <th>
+                        Description
+                    </th>
+
+                    <th class="text-center">
+                        Assets
+                    </th>
+
+                    <th class="text-center">
+                        Status
+                    </th>
+
+                    <th>
+                        Created Date
+                    </th>
+
+                    <th style="width:150px;"
+                        class="text-center">
+
+                        Actions
+
+                    </th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                @if (Model != null && Model.Any())
+                {
+                    int rowNumber = 1;
+
+                    foreach (var category in Model)
+                    {
+                        <tr>
+
+                            <!-- Sr No -->
+
+                            <td>
+                                @rowNumber
+                            </td>
+
+
+                            <!-- Icon -->
+
+                            <td>
+
+                                <span class="category-icon">
+
+                                    <i class="bi bi-box-seam"></i>
+
+                                </span>
+
+                            </td>
+
+
+                            <!-- Name -->
+
+                            <td>
+
+                                <span class="category-name">
+
+                                    @category.Name
+
+                                </span>
+
+                            </td>
+
+
+                            <!-- Description -->
+
+                            <td>
+
+                                @if (!string.IsNullOrWhiteSpace(category.Description))
+                                {
+                                    <span class="category-description">
+
+                                        @category.Description
+
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">
+                                        -
+                                    </span>
+                                }
+
+                            </td>
+
+
+                            <!-- Asset Count -->
+
+                            <td class="text-center">
+
+                                <span class="asset-count-badge">
+
+                                    @category.Assets?.Count
+
+                                </span>
+
+                            </td>
+
+
+                            <!-- Status -->
+
+                            <td class="text-center">
+
+                                @if (category.IsActive)
+                                {
+                                    <span class="status-badge status-active">
+
+                                        <i class="bi bi-check-circle-fill"></i>
+
+                                        Active
+
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="status-badge">
+
+                                        Inactive
+
+                                    </span>
+                                }
+
+                            </td>
+
+
+                            <!-- Created Date -->
+
+                            <td>
+
+                                @category.CreatedDate.ToString("dd MMM yyyy")
+
+                            </td>
+
+
+                            <!-- Actions -->
+
+                            <td class="text-center">
+
+                                <div class="d-flex justify-content-center gap-2">
+
+                                    <!-- EDIT -->
+
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-primary"
+                                            title="Edit Category"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#editAssetCategoryModal"
+                                            data-id="@category.Id"
+                                            data-name="@category.Name"
+                                            data-description="@category.Description">
+
+                                        <i class="bi bi-pencil"></i>
+
+                                    </button>
+
+
+                                    <!-- DELETE -->
+
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-danger delete-category-btn"
+                                            title="Delete Category"
+                                            data-id="@category.Id"
+                                            data-name="@category.Name">
+
+                                        <i class="bi bi-trash"></i>
+
+                                    </button>
+
+
+                                    <!-- Hidden Delete Form -->
+
+                                    <form id="deleteCategoryForm-@category.Id"
+                                          asp-action="DeleteAssetCategory"
+                                          asp-controller="Admin"
+                                          method="post"
+                                          class="d-none">
+
+                                        @Html.AntiForgeryToken()
+
+                                        <input type="hidden"
+                                               name="id"
+                                               value="@category.Id" />
+
+                                    </form>
+
+                                </div>
+
+                            </td>
+
+                        </tr>
+
+                        rowNumber++;
+                    }
+                }
+                else
+                {
+                    <tr>
+
+                        <td colspan="8"
+                            class="asset-empty-state">
+
+                            <i class="bi bi-box-seam"></i>
+
+                            <strong>
+                                No Asset Categories Found
+                            </strong>
+
+                            <div class="mt-2">
+                                Click <strong>+ Add</strong> to create your first asset category.
+                            </div>
+
+                        </td>
+
+                    </tr>
+                }
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     ADD CATEGORY MODAL
+     ========================================================= -->
+
+<div class="modal fade"
+     id="addAssetCategoryModal"
+     tabindex="-1"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-md modal-dialog-centered">
+
+        <div class="modal-content asset-modal-content">
+
+            <form asp-controller="Admin"
+                  asp-action="AddAssetCategory"
+                  method="post">
+
+                @Html.AntiForgeryToken()
+
+
+                <!-- Header -->
+
+                <div class="modal-header asset-modal-header">
+
+                    <h5 class="modal-title asset-modal-title">
+
+                        <i class="bi bi-plus-circle me-2 text-primary"></i>
+
+                        Add Asset Category
+
+                    </h5>
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal">
+                    </button>
+
+                </div>
+
+
+                <!-- Body -->
+
+                <div class="modal-body asset-modal-body">
+
+                    <div class="mb-3">
+
+                        <label class="asset-form-label">
+
+                            Category Name
+
+                            <span class="required-star">*</span>
+
+                        </label>
+
+                        <input type="text"
+                               name="name"
+                               class="form-control asset-form-control"
+                               placeholder="Enter category name"
+                               minlength="2"
+                               maxlength="100"
+                               required />
+
+                        <div class="asset-form-help">
+
+                            Example: Laptop, Desktop, Monitor, Mobile, Keyboard
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="mb-3">
+
+                        <label class="asset-form-label">
+
+                            Description
+
+                        </label>
+
+                        <textarea name="description"
+                                  class="form-control asset-form-control"
+                                  rows="4"
+                                  maxlength="500"
+                                  placeholder="Enter category description"></textarea>
+
+                        <div class="asset-form-help">
+
+                            Optional. Maximum 500 characters.
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Footer -->
+
+                <div class="modal-footer asset-modal-footer">
+
+                    <button type="button"
+                            class="btn btn-light"
+                            data-bs-dismiss="modal">
+
+                        <i class="bi bi-x-lg me-1"></i>
+
+                        Cancel
+
+                    </button>
+
+                    <button type="submit"
+                            class="btn btn-asset-primary">
+
+                        <i class="bi bi-check-lg me-1"></i>
+
+                        Create
+
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     EDIT CATEGORY MODAL
+     ========================================================= -->
+
+<div class="modal fade"
+     id="editAssetCategoryModal"
+     tabindex="-1"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-md modal-dialog-centered">
+
+        <div class="modal-content asset-modal-content">
+
+            <form asp-controller="Admin"
+                  asp-action="EditAssetCategory"
+                  method="post">
+
+                @Html.AntiForgeryToken()
+
+
+                <input type="hidden"
+                       id="editAssetCategoryId"
+                       name="Id" />
+
+
+                <!-- Header -->
+
+                <div class="modal-header asset-modal-header">
+
+                    <h5 class="modal-title asset-modal-title">
+
+                        <i class="bi bi-pencil-square me-2 text-primary"></i>
+
+                        Edit Asset Category
+
+                    </h5>
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal">
+                    </button>
+
+                </div>
+
+
+                <!-- Body -->
+
+                <div class="modal-body asset-modal-body">
+
+                    <div class="mb-3">
+
+                        <label class="asset-form-label">
+
+                            Category Name
+
+                            <span class="required-star">*</span>
+
+                        </label>
+
+                        <input type="text"
+                               id="editAssetCategoryName"
+                               name="Name"
+                               class="form-control asset-form-control"
+                               minlength="2"
+                               maxlength="100"
+                               required />
+
+                    </div>
+
+
+                    <div class="mb-3">
+
+                        <label class="asset-form-label">
+
+                            Description
+
+                        </label>
+
+                        <textarea id="editAssetCategoryDescription"
+                                  name="Description"
+                                  class="form-control asset-form-control"
+                                  rows="4"
+                                  maxlength="500"
+                                  placeholder="Enter category description"></textarea>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Footer -->
+
+                <div class="modal-footer asset-modal-footer">
+
+                    <button type="button"
+                            class="btn btn-light"
+                            data-bs-dismiss="modal">
+
+                        <i class="bi bi-x-lg me-1"></i>
+
+                        Cancel
+
+                    </button>
+
+                    <button type="submit"
+                            class="btn btn-asset-primary">
+
+                        <i class="bi bi-check-lg me-1"></i>
+
+                        Update
+
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     JAVASCRIPT
+     ========================================================= -->
+@section Scripts {
+
+    <script>
+
+        document.addEventListener("DOMContentLoaded", function() {
+
+            /* =====================================================
+               EDIT CATEGORY
+               ===================================================== */
+
+            const editModal =
+                document.getElementById("editAssetCategoryModal");
+
+            if (editModal) {
+
+                editModal.addEventListener(
+                    "show.bs.modal",
+                    function(event) {
+
+                        const button = event.relatedTarget;
+
+                        if (!button)
+                            return;
+
+                        const id =
+                            button.getAttribute("data-id");
+
+                        const name =
+                            button.getAttribute("data-name");
+
+                        const description =
+                            button.getAttribute("data-description");
+
+                        document.getElementById(
+                            "editAssetCategoryId"
+                        ).value = id || "";
+
+                        document.getElementById(
+                            "editAssetCategoryName"
+                        ).value = name || "";
+
+                        document.getElementById(
+                            "editAssetCategoryDescription"
+                        ).value = description || "";
+
+                    }
+                );
+
+            }
+
+
+            /* =====================================================
+               DELETE CATEGORY
+               ===================================================== */
+
+            document
+                .querySelectorAll(".delete-category-btn")
+                .forEach(function(button) {
+
+                    button.addEventListener(
+                        "click",
+                        function() {
+
+                            const id =
+                                this.getAttribute("data-id");
+
+                            const name =
+                                this.getAttribute("data-name");
+
+                            if (!id)
+                                return;
+
+                            const message =
+                                "Are you sure you want to delete the asset category '" +
+                                name +
+                                "'?";
+
+                            if (confirm(message)) {
+
+                                const form =
+                                    document.getElementById(
+                                        "deleteCategoryForm-" + id
+                                    );
+
+                                if (form) {
+                                    form.submit();
+                                }
+
+                            }
+
+                        }
+                    );
+
+                });
+
+        });
+
+    </script>
+
+}

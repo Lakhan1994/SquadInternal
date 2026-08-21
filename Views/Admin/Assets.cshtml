@@ -1,0 +1,614 @@
+﻿@model List<SquadInternal.Models.Asset>
+@using SquadInternal.Models
+@using SquadInternal.Models.Enum
+
+@{
+    ViewData["Title"] = "Assets";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+
+    var categories = ViewBag.AssetCategories as List<AssetCategory>
+                     ?? new List<AssetCategory>();
+}
+
+<style>
+    .asset-page-header {
+        padding: 18px 0 16px 0;
+    }
+
+        .asset-page-header h3 {
+            color: #2c3e50;
+            font-weight: 700;
+        }
+
+    .asset-primary-btn {
+        border-radius: 8px;
+        font-weight: 600;
+        padding: 9px 20px;
+        background: linear-gradient(135deg, #6674f6 0%, #4d5bd4 100%);
+        border: none;
+        color: #fff;
+        box-shadow: 0 4px 12px rgba(77, 91, 212, 0.25);
+        transition: all .2s ease;
+    }
+
+        .asset-primary-btn:hover {
+            color: #fff;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 18px rgba(77, 91, 212, 0.35);
+        }
+
+    .asset-card {
+        border: none !important;
+        border-radius: 12px !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, .06) !important;
+        overflow: hidden;
+    }
+
+    .asset-table thead th {
+        background: #f8f9fa;
+        color: #2c3e50;
+        font-size: .82rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .4px;
+        padding: 14px 12px;
+        white-space: nowrap;
+        border-bottom: 2px solid #e9ecef;
+    }
+
+    .asset-table tbody td {
+        padding: 12px;
+        vertical-align: middle;
+        border-bottom: 1px solid #f0f2f5;
+    }
+
+    .asset-table tbody tr:hover {
+        background: #f8f9ff;
+    }
+
+    .asset-code {
+        font-weight: 700;
+        color: #4d5bd4;
+        font-size: .88rem;
+    }
+
+    .asset-name {
+        font-weight: 600;
+        color: #2c3e50;
+    }
+
+    .asset-subtext {
+        font-size: .78rem;
+        color: #6c757d;
+    }
+
+    .asset-category-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: #eef0ff;
+        color: #4d5bd4;
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: .78rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .asset-status-badge,
+    .asset-condition-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: .76rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .status-available {
+        background: #e8f7ee;
+        color: #198754;
+    }
+
+    .status-assigned {
+        background: #e8f0ff;
+        color: #0d6efd;
+    }
+
+    .status-repair {
+        background: #fff4dc;
+        color: #b77900;
+    }
+
+    .status-damaged {
+        background: #ffe8e8;
+        color: #dc3545;
+    }
+
+    .status-lost {
+        background: #f3e8ff;
+        color: #7c3aed;
+    }
+
+    .status-retired, .status-disposed {
+        background: #eeeeee;
+        color: #6c757d;
+    }
+
+    .condition-new {
+        background: #e8f7ee;
+        color: #198754;
+    }
+
+    .condition-excellent {
+        background: #e8f0ff;
+        color: #0d6efd;
+    }
+
+    .condition-good {
+        background: #eef7ff;
+        color: #2563eb;
+    }
+
+    .condition-fair {
+        background: #fff4dc;
+        color: #b77900;
+    }
+
+    .condition-damaged {
+        background: #ffe8e8;
+        color: #dc3545;
+    }
+
+    .asset-action-btn {
+        width: 34px;
+        height: 34px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+    }
+
+    .asset-modal-content {
+        border: none !important;
+        border-radius: 16px !important;
+        overflow: hidden;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, .15);
+    }
+
+    .asset-modal-header {
+        padding: 20px 26px;
+        background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
+        border-bottom: 2px solid #f0f2f5;
+    }
+
+    .asset-modal-title {
+        color: #2c3e50;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    .asset-modal-body {
+        padding: 26px;
+    }
+
+    .asset-modal-footer {
+        padding: 16px 26px;
+        background: #f8f9fa;
+        border-top: 2px solid #f0f2f5;
+    }
+
+    .asset-form-label {
+        color: #2c3e50;
+        font-size: .88rem;
+        font-weight: 600;
+        margin-bottom: 6px;
+    }
+
+    .asset-required {
+        color: #dc3545;
+    }
+
+    .asset-form-control {
+        border: 1.5px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 9px 12px;
+    }
+
+        .asset-form-control:focus {
+            border-color: #4d5bd4;
+            box-shadow: 0 0 0 4px rgba(77, 91, 212, .10);
+        }
+
+    .asset-form-help {
+        font-size: .76rem;
+        color: #6c757d;
+        margin-top: 4px;
+    }
+
+    .asset-section-title {
+        color: #2c3e50;
+        font-size: .95rem;
+        font-weight: 700;
+        padding-bottom: 8px;
+        margin-bottom: 16px;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .asset-empty-state {
+        padding: 55px 20px !important;
+        text-align: center;
+        color: #6c757d;
+    }
+
+        .asset-empty-state i {
+            display: block;
+            font-size: 44px;
+            color: #cbd5e1;
+            margin-bottom: 12px;
+        }
+</style>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger mt-3">
+        <i class="bi bi-exclamation-circle me-2"></i>
+        @TempData["Error"]
+    </div>
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success mt-3">
+        <i class="bi bi-check-circle me-2"></i>
+        @TempData["Success"]
+    </div>
+}
+
+<div class="page-accent d-flex justify-content-between align-items-center asset-page-header">
+    <h3 class="m-0">Assets</h3>
+    <button type="button" class="btn asset-primary-btn" data-bs-toggle="modal" data-bs-target="#addAssetModal">
+        <i class="bi bi-plus-lg me-1"></i> Add Asset
+    </button>
+</div>
+
+<div class="card asset-card mt-3">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 asset-table">
+            <thead>
+                <tr>
+                    <th style="width:65px;">Sr. No</th>
+                    <th>Asset Code</th>
+                    <th>Asset</th>
+                    <th>Category</th>
+                    <th>Serial Number</th>
+                    <th>Purchase Cost</th>
+                    <th>Condition</th>
+                    <th>Status</th>
+                    <th>Assigned To</th>
+                    <th style="width:110px;" class="text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model != null && Model.Any())
+                {
+                    int rowNumber = 1;
+                    foreach (var asset in Model)
+                    {
+                        <tr>
+                            <td>@rowNumber</td>
+                            <td><span class="asset-code">@asset.AssetCode</span></td>
+                            <td>
+                                <div class="asset-name">@asset.AssetName</div>
+                                @if (!string.IsNullOrWhiteSpace(asset.Brand) || !string.IsNullOrWhiteSpace(asset.Model))
+                                {
+                                    <div class="asset-subtext">
+                                        @asset.Brand
+                                        @if (!string.IsNullOrWhiteSpace(asset.Brand) && !string.IsNullOrWhiteSpace(asset.Model))
+                                        {
+                                            <span> • </span>
+                                        }
+                                        @asset.Model
+                                    </div>
+                                }
+                            </td>
+                            <td>
+                                @if (asset.AssetCategory != null)
+                                {
+                                    <span class="asset-category-badge">
+                                        <i class="bi bi-box-seam"></i>
+                                        @asset.AssetCategory.Name
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrWhiteSpace(asset.SerialNumber))
+                                {
+                                    <span>@asset.SerialNumber</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td>
+                                @if (asset.PurchaseCost.HasValue)
+                                {
+                                    <span>₹@asset.PurchaseCost.Value.ToString("N2")</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td>
+                                @{
+                                    var conditionClass = asset.Condition switch
+                                    {
+                                        AssetCondition.New => "condition-new",
+                                        AssetCondition.Excellent => "condition-excellent",
+                                        AssetCondition.Good => "condition-good",
+                                        AssetCondition.Fair => "condition-fair",
+                                        AssetCondition.Damaged => "condition-damaged",
+                                        _ => ""
+                                    };
+                                }
+                                <span class="asset-condition-badge @conditionClass">@asset.Condition</span>
+                            </td>
+                            <td>
+                                @{
+                                    var statusClass = asset.Status switch
+                                    {
+                                        AssetStatus.Available => "status-available",
+                                        AssetStatus.Assigned => "status-assigned",
+                                        AssetStatus.UnderRepair => "status-repair",
+                                        AssetStatus.Damaged => "status-damaged",
+                                        AssetStatus.Lost => "status-lost",
+                                        AssetStatus.Retired => "status-retired",
+                                        AssetStatus.Disposed => "status-disposed",
+                                        _ => ""
+                                    };
+                                }
+                                <span class="asset-status-badge @statusClass">
+                                    @switch (asset.Status)
+                                    {
+                                        case AssetStatus.Available:
+                                            <i class="bi bi-check-circle-fill"></i>
+                                            break;
+                                        case AssetStatus.Assigned:
+                                            <i class="bi bi-person-check-fill"></i>
+                                            break;
+                                        case AssetStatus.UnderRepair:
+                                            <i class="bi bi-tools"></i>
+                                            break;
+                                        case AssetStatus.Damaged:
+                                            <i class="bi bi-exclamation-triangle-fill"></i>
+                                            break;
+                                        case AssetStatus.Lost:
+                                            <i class="bi bi-question-circle-fill"></i>
+                                            break;
+                                        case AssetStatus.Retired:
+                                            <i class="bi bi-archive-fill"></i>
+                                            break;
+                                        case AssetStatus.Disposed:
+                                            <i class="bi bi-trash3-fill"></i>
+                                            break;
+                                    }
+                                    @asset.Status
+                                </span>
+                            </td>
+                            <td>
+                                @if (asset.CurrentEmployee != null)
+                                {
+                                    <div class="asset-name">@asset.CurrentEmployee.FirstName @asset.CurrentEmployee.LastName</div>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Not Assigned</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <button type="button" class="btn btn-sm btn-outline-primary asset-action-btn" title="View Asset">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary asset-action-btn" title="Edit Asset">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        rowNumber++;
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="10" class="asset-empty-state">
+                            <i class="bi bi-box-seam"></i>
+                            <strong>No Assets Found</strong>
+                            <div class="mt-2">Click <strong>Add Asset</strong> to add your first company asset.</div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ADD ASSET MODAL -->
+<div class="modal fade" id="addAssetModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content asset-modal-content">
+            <form id="addAssetForm" asp-controller="Admin" asp-action="AddAsset" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+
+                <div class="modal-header asset-modal-header">
+                    <h5 class="modal-title asset-modal-title">
+                        <i class="bi bi-box-seam me-2 text-primary"></i> Add New Asset
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body asset-modal-body">
+                    <!-- ASSET INFORMATION -->
+                    <div class="asset-section-title">
+                        <i class="bi bi-info-circle me-2"></i> Asset Information
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="asset-form-label">Asset Code <span class="asset-required">*</span></label>
+                            <input type="text" name="AssetCode" class="form-control asset-form-control" placeholder="e.g. AST-LAP-0001" maxlength="50" required />
+                            <div class="asset-form-help">Unique company asset identification code.</div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="asset-form-label">Asset Name <span class="asset-required">*</span></label>
+                            <input type="text" name="AssetName" class="form-control asset-form-control" placeholder="e.g. Dell Latitude 5440" maxlength="200" required />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="asset-form-label">Category <span class="asset-required">*</span></label>
+                            <select name="AssetCategoryId" class="form-select asset-form-control" required>
+                                <option value="">-- Select Category --</option>
+                                @foreach (var category in categories)
+                                {
+                                    <option value="@category.Id">@category.Name</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="asset-form-label">Brand</label>
+                            <input type="text" name="Brand" class="form-control asset-form-control" placeholder="e.g. Dell" maxlength="100" />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="asset-form-label">Model</label>
+                            <input type="text" name="Model" class="form-control asset-form-control" placeholder="e.g. Latitude 5440" maxlength="100" />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="asset-form-label">Serial Number</label>
+                            <input type="text" name="SerialNumber" class="form-control asset-form-control" placeholder="Enter serial number" maxlength="150" />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="asset-form-label">Condition <span class="asset-required">*</span></label>
+                            <select name="Condition" class="form-select asset-form-control" required>
+                                @foreach (AssetCondition condition in Enum.GetValues<AssetCondition>())
+                                {
+                                    <option value="@condition.ToString()" selected="@(condition == AssetCondition.New)">
+                                        @condition
+                                    </option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="asset-form-label">Location</label>
+                            <input type="text" name="Location" class="form-control asset-form-control" placeholder="e.g. Pune Office" maxlength="200" />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="asset-form-label">Configuration</label>
+                            <input type="text" name="Configuration" class="form-control asset-form-control" placeholder="e.g. i5 / 16GB / 512GB" maxlength="500" />
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="asset-form-label">Description</label>
+                            <textarea name="Description" class="form-control asset-form-control" rows="3" maxlength="1000" placeholder="Additional asset details"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- PURCHASE INFORMATION -->
+                    <div class="asset-section-title mt-4">
+                        <i class="bi bi-receipt me-2"></i> Purchase Information
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="asset-form-label">Vendor Name</label>
+                            <input type="text" name="VendorName" class="form-control asset-form-control" placeholder="Enter vendor name" maxlength="200" />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="asset-form-label">Invoice Number</label>
+                            <input type="text" name="InvoiceNumber" class="form-control asset-form-control" placeholder="Enter invoice number" maxlength="100" />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="asset-form-label">Purchase Date</label>
+                            <input type="date" name="PurchaseDate" class="form-control asset-form-control" />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="asset-form-label">Purchase Cost</label>
+                            <div class="input-group">
+                                <span class="input-group-text">₹</span>
+                                <input type="number" name="PurchaseCost" class="form-control asset-form-control" min="0" step="0.01" placeholder="0.00" />
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="asset-form-label">Warranty Start</label>
+                            <input type="date" name="WarrantyStartDate" class="form-control asset-form-control" />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="asset-form-label">Warranty End</label>
+                            <input type="date" name="WarrantyEndDate" class="form-control asset-form-control" />
+                        </div>
+                    </div>
+
+                    <!-- INITIAL STATUS -->
+                    <div class="mt-4 p-3 rounded" style="background:#f8f9ff;border:1px solid #e9eafe;">
+                        <div class="d-flex align-items-start">
+                            <i class="bi bi-info-circle-fill text-primary fs-5 me-3"></i>
+                            <div>
+                                <strong class="text-dark">Initial Asset Status</strong>
+                                <div class="small text-muted mt-1">
+                                    New assets will automatically be created as
+                                    <strong class="text-success">Available</strong>
+                                    and can be assigned to an employee later.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer asset-modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">
+                        <i class="bi bi-x-lg me-1"></i> Cancel
+                    </button>
+                    <button type="submit" class="btn asset-primary-btn">
+                        <i class="bi bi-check-lg me-1"></i> Add Asset
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add this JavaScript to debug form submission -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('addAssetForm');
+        if (form) {
+            form.addEventListener('submit', function (e) {
+                console.log('Form submitting...');
+                const formData = new FormData(this);
+                console.log('Form data:');
+                for (var pair of formData.entries()) {
+                    console.log(pair[0] + ': ' + pair[1]);
+                }
+                // Don't prevent default - let the form submit
+            });
+        }
+    });
+</script>
