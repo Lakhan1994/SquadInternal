@@ -570,51 +570,191 @@ if (window._employeesJsInitialized) {
     }
 
     // Open Edit Employee modal
-    window.openEditEmployee = function (id, firstName, lastName, email, roleId, reportingToUserId, dateOfBirth, dateOfJoining, gender, hasProfilePicture, initials, mobileNumber, bloodGroup) {
-        // Set current employee ID (global for inline handlers)
+    window.openEditEmployee = function (
+        id,
+        firstName,
+        lastName,
+        email,
+        roleId,
+        reportingToUserId,
+        dateOfBirth,
+        dateOfJoining,
+        gender,
+        hasProfilePicture,
+        initials,
+        mobileNumber,
+        bloodGroup,
+        salary
+    ) {
+        // ============================================================
+        // 1. SET CURRENT EMPLOYEE
+        // ============================================================
         currentEmployeeId = id;
         window.currentEmployeeId = id;
 
-        // Set form values
-        document.getElementById("editId").value = id;
-        document.getElementById("editFirstName").value = firstName;
-        document.getElementById("editLastName").value = lastName;
-        document.getElementById("editEmail").value = email || '';
-        document.getElementById("editRole").value = roleId || '';
-        document.getElementById("editReportingToUserId").value = reportingToUserId || '';
-        document.getElementById("editDateOfBirth").value = dateOfBirth || '';
-        document.getElementById("editDateOfJoining").value = dateOfJoining || '';
-        document.getElementById("editGender").value = gender || '';
-        document.getElementById("editMobileNumber").value = mobileNumber || '';
-        document.getElementById("editBloodGroup").value = bloodGroup || '';
+        // ============================================================
+        // 2. RESET MODAL TO PERSONAL DETAILS TAB
+        // ============================================================
+        const editModalElement = document.getElementById("editEmployeeModal");
 
-        // Profile picture preview
-        const picPreview = document.getElementById("editProfilePicturePreview");
-        const picInitials = document.getElementById("editProfileInitials");
-        const picFileInput = document.getElementById("editProfilePictureFile");
-
-        if (picFileInput) picFileInput.value = '';
-
-        if (hasProfilePicture === true || hasProfilePicture === 'true') {
-            picPreview.src = `/Admin/GetProfilePicture?employeeId=${id}&t=${new Date().getTime()}`;
-            picPreview.style.display = 'inline-block';
-            picInitials.style.display = 'none';
-        } else {
-            picPreview.style.display = 'none';
-            picInitials.style.display = 'inline-flex';
-            picInitials.textContent = initials || '';
+        if (!editModalElement) {
+            console.error("Edit Employee modal not found.");
+            return;
         }
 
-        // Clear education form
+        // Find all tab links
+        const editTabLinks = editModalElement.querySelectorAll(
+            '[data-bs-toggle="tab"]'
+        );
+
+        // Remove active state from every tab
+        editTabLinks.forEach(tab => {
+            tab.classList.remove("active");
+            tab.setAttribute("aria-selected", "false");
+        });
+
+        // Hide every tab pane
+        const editTabPanes = editModalElement.querySelectorAll(".tab-pane");
+
+        editTabPanes.forEach(pane => {
+            pane.classList.remove("show", "active");
+        });
+
+        // Activate Personal Details tab
+        const personalTab = editModalElement.querySelector(
+            '[data-bs-toggle="tab"][href="#edit-tab-personal"]'
+        );
+
+        const personalPane = editModalElement.querySelector(
+            "#edit-tab-personal"
+        );
+
+        if (personalTab) {
+            personalTab.classList.add("active");
+            personalTab.setAttribute("aria-selected", "true");
+        }
+
+        if (personalPane) {
+            personalPane.classList.add("show", "active");
+        }
+
+        // ============================================================
+        // 3. CLEAR OLD EMPLOYEE EDUCATION DATA
+        // ============================================================
+        const educationTable =
+            document.getElementById("editEducationTable");
+
+        if (educationTable) {
+            educationTable.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-muted text-center">
+                    Loading...
+                </td>
+            </tr>`;
+        }
+
+        // ============================================================
+        // 4. CLEAR OLD DOCUMENT DATA
+        // ============================================================
+        const documentsBody =
+            document.getElementById("editEmployeeDocumentsBody");
+
+        if (documentsBody) {
+            documentsBody.innerHTML = `
+            <div class="text-center text-muted py-4">
+                Select Documents tab to load documents.
+            </div>`;
+        }
+
+        // ============================================================
+        // 5. LOAD NEW EMPLOYEE PERSONAL DETAILS
+        // ============================================================
+        document.getElementById("editId").value = id;
+        document.getElementById("editFirstName").value = firstName || "";
+        document.getElementById("editLastName").value = lastName || "";
+        document.getElementById("editEmail").value = email || "";
+        document.getElementById("editRole").value = roleId || "";
+        document.getElementById("editReportingToUserId").value =
+            reportingToUserId || "";
+
+        document.getElementById("editDateOfBirth").value =
+            dateOfBirth || "";
+
+        document.getElementById("editDateOfJoining").value =
+            dateOfJoining || "";
+
+        document.getElementById("editGender").value =
+            gender || "";
+
+        document.getElementById("editMobileNumber").value =
+            mobileNumber || "";
+
+        document.getElementById("editBloodGroup").value =
+            bloodGroup || "";
+
+        document.getElementById("editSalary").value =
+            salary ?? "";
+
+        // ============================================================
+        // 6. RESET PROFILE PICTURE
+        // ============================================================
+        const picPreview =
+            document.getElementById("editProfilePicturePreview");
+
+        const picInitials =
+            document.getElementById("editProfileInitials");
+
+        const picFileInput =
+            document.getElementById("editProfilePictureFile");
+
+        if (picFileInput) {
+            picFileInput.value = "";
+        }
+
+        if (hasProfilePicture === true || hasProfilePicture === "true") {
+
+            if (picPreview) {
+                picPreview.src =
+                    `/Admin/GetProfilePicture?employeeId=${id}&t=${Date.now()}`;
+
+                picPreview.style.display = "inline-block";
+            }
+
+            if (picInitials) {
+                picInitials.style.display = "none";
+            }
+
+        } else {
+
+            if (picPreview) {
+                picPreview.src = "";
+                picPreview.style.display = "none";
+            }
+
+            if (picInitials) {
+                picInitials.style.display = "inline-flex";
+                picInitials.textContent = initials || "";
+            }
+        }
+
+        // ============================================================
+        // 7. RESET EDUCATION FORM
+        // ============================================================
         clearEditEducationForm();
 
-        // Load education records
+        // ============================================================
+        // 8. LOAD EDUCATION FOR CURRENT EMPLOYEE ONLY
+        // ============================================================
         loadEmployeeEducations(id);
 
-        // Show modal
-        const editModal = new bootstrap.Modal(document.getElementById("editEmployeeModal"));
+        // ============================================================
+        // 9. SHOW MODAL
+        // ============================================================
+        const editModal =
+            bootstrap.Modal.getOrCreateInstance(editModalElement);
+
         editModal.show();
-    }
+    };
 
     // Upload/replace profile picture for the employee being edited
     async function uploadProfilePicture(file) {

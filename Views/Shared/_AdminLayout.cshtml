@@ -73,6 +73,22 @@
                     </li>
 
                     <li class="nav-item mb-1">
+                        <a class="nav-link text-white @(currentAction == "AssetCategories" ? "active-menu" : "")"
+                           asp-controller="Admin"
+                           asp-action="AssetCategories">
+                            <i class="bi bi-box-seam me-2"></i> Asset Category
+                        </a>
+                    </li>
+
+                    <li class="nav-item mb-1">
+                        <a class="nav-link text-white @(currentAction == "Assets" ? "active-menu" : "")"
+                           asp-controller="Admin"
+                           asp-action="Assets">
+                            <i class="bi bi-box-seam me-2"></i> Assets
+                        </a>
+                    </li>
+
+                    <li class="nav-item mb-1">
                         <a class="nav-link text-white @(currentAction == "LeaveManagement" ? "active-menu" : "")"
                            asp-controller="Admin"
                            asp-action="LeaveManagement">
