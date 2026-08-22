@@ -106,7 +106,7 @@
                 }
 
                 <!-- EMPLOYEE MENU -->
-                @if (roleId == 2)
+                @if (roleId != 1)
                 {
                     <li class="nav-item mb-1">
                         <a class="nav-link text-white @(currentAction == "Profile" ? "active-menu" : "")"

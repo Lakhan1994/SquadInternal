@@ -1,15 +1,16 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SquadInternal.Data;
 using SquadInternal.Filters;
 using SquadInternal.Models;
+using SquadInternal.Models.Enum;
 using SquadInternal.Models.ViewModels;
 using SquadInternal.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
 
 
 namespace SquadInternal.Controllers
@@ -1293,9 +1294,10 @@ namespace SquadInternal.Controllers
     int? reportingToUserId,
     DateTime? dateOfBirth,
     DateTime? dateOfJoining,
-    string gender,
+    string? gender,
     string? mobileNumber,
-    string? bloodGroup)
+    string? bloodGroup,
+    decimal? salary)
         {
             var employee = await _db.Employees
                 .Include(e => e.User)
@@ -1307,26 +1309,41 @@ namespace SquadInternal.Controllers
                 return RedirectToAction("Employees");
             }
 
-            // Update employee table
-            employee.FirstName = firstName;
-            employee.LastName = lastName;
+            // Employee table
+            employee.FirstName = firstName?.Trim();
+            employee.LastName = lastName?.Trim();
+
             employee.ReportingToUserId = reportingToUserId;
+
             employee.DateOfBirth = dateOfBirth;
             employee.DateOfJoining = dateOfJoining;
-            employee.Gender = gender;
-            employee.MobileNumber = string.IsNullOrWhiteSpace(mobileNumber) ? null : mobileNumber.Trim();
-            employee.BloodGroup = string.IsNullOrWhiteSpace(bloodGroup) ? null : bloodGroup.Trim();
+            employee.Gender = string.IsNullOrWhiteSpace(gender)
+                ? null
+                : gender.Trim();
 
-            // Update User table (role)
+            employee.MobileNumber = string.IsNullOrWhiteSpace(mobileNumber)
+                ? null
+                : mobileNumber.Trim();
+
+            employee.BloodGroup = string.IsNullOrWhiteSpace(bloodGroup)
+                ? null
+                : bloodGroup.Trim();
+
+            employee.Salary = salary;
+
+            // User table
             if (employee.User != null)
             {
-                employee.User.Name = firstName + " " + lastName;
+                employee.User.Name =
+                    $"{employee.FirstName} {employee.LastName}".Trim();
+
                 employee.User.RoleId = roleId;
             }
 
             await _db.SaveChangesAsync();
 
             TempData["Success"] = "Employee updated successfully.";
+
             return RedirectToAction("Employees");
         }
 
@@ -1345,6 +1362,439 @@ namespace SquadInternal.Controllers
         }
 
         // ================= EMPLOYEE DOCUMENTS (ADMIN ONLY) =================
+       
+        [AuthorizeAdmin]
+        [HttpGet]
+        public async Task<IActionResult> Assets()
+        {
+            var assets = await _db.Assets
+                .Include(a => a.AssetCategory)
+                .Include(a => a.CurrentEmployee)
+                .Where(a => !a.IsDeleted)
+                .OrderByDescending(a => a.AddedDate)
+                .ToListAsync();
+
+            ViewBag.AssetCategories = await _db.AssetCategories
+                .Where(c => c.IsActive)
+                .OrderBy(c => c.Name)
+                .ToListAsync();
+
+            return View(assets);
+        }
+
+        [AuthorizeAdmin]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddAsset(
+     string AssetCode,
+     string AssetName,
+     int AssetCategoryId,
+     string? Brand,
+     string? Model,
+     string? SerialNumber,
+     string? VendorName,
+     string? InvoiceNumber,
+     DateTime? PurchaseDate,
+     decimal? PurchaseCost,
+     DateTime? WarrantyStartDate,
+     DateTime? WarrantyEndDate,
+     string? Configuration,
+     string? Description,
+     string? Location,
+     string Condition)
+        {
+            try
+            {
+                // =========================================================
+                // 1. DEBUG LOGGING
+                // =========================================================
+
+                Console.WriteLine("=================================");
+                Console.WriteLine("ADD ASSET REQUEST - INDIVIDUAL PARAMS");
+                Console.WriteLine($"AssetCode       : {AssetCode}");
+                Console.WriteLine($"AssetName       : {AssetName}");
+                Console.WriteLine($"AssetCategoryId : {AssetCategoryId}");
+                Console.WriteLine($"Condition       : {Condition}");
+                Console.WriteLine("=================================");
+
+                // =========================================================
+                // 2. CURRENT USER
+                // =========================================================
+
+                var currentUserId = HttpContext.Session.GetInt32("UserId");
+
+                if (currentUserId == null)
+                {
+                    TempData["Error"] = "Your session has expired. Please login again.";
+                    return RedirectToAction("Login", "Account");
+                }
+
+                // =========================================================
+                // 3. CLEAN STRING VALUES
+                // =========================================================
+
+                AssetCode = AssetCode?.Trim();
+                AssetName = AssetName?.Trim();
+                Brand = Brand?.Trim();
+                Model = Model?.Trim();
+                SerialNumber = SerialNumber?.Trim();
+                VendorName = VendorName?.Trim();
+                InvoiceNumber = InvoiceNumber?.Trim();
+                Configuration = Configuration?.Trim();
+                Description = Description?.Trim();
+                Location = Location?.Trim();
+                Condition = Condition?.Trim();
+
+                // =========================================================
+                // 4. VALIDATE REQUIRED FIELDS
+                // =========================================================
+
+                if (string.IsNullOrWhiteSpace(AssetCode))
+                {
+                    TempData["Error"] = "Asset code is required.";
+                    return RedirectToAction("Assets");
+                }
+
+                if (string.IsNullOrWhiteSpace(AssetName))
+                {
+                    TempData["Error"] = "Asset name is required.";
+                    return RedirectToAction("Assets");
+                }
+
+                if (AssetCategoryId <= 0)
+                {
+                    TempData["Error"] = "Please select a valid asset category.";
+                    return RedirectToAction("Assets");
+                }
+
+                // =========================================================
+                // 5. CHECK CATEGORY EXISTS
+                // =========================================================
+
+                var category = await _db.AssetCategories
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(c => c.Id == AssetCategoryId && c.IsActive);
+
+                if (category == null)
+                {
+                    TempData["Error"] = $"Asset category with ID {AssetCategoryId} does not exist or is inactive.";
+                    return RedirectToAction("Assets");
+                }
+
+                // =========================================================
+                // 6. CHECK DUPLICATE ASSET CODE
+                // =========================================================
+
+                var assetCodeExists = await _db.Assets
+                    .AsNoTracking()
+                    .AnyAsync(a => a.AssetCode == AssetCode && !a.IsDeleted);
+
+                if (assetCodeExists)
+                {
+                    TempData["Error"] = $"Asset code '{AssetCode}' already exists.";
+                    return RedirectToAction("Assets");
+                }
+
+                // =========================================================
+                // 7. CHECK DUPLICATE SERIAL NUMBER
+                // =========================================================
+
+                if (!string.IsNullOrWhiteSpace(SerialNumber))
+                {
+                    var serialExists = await _db.Assets
+                        .AsNoTracking()
+                        .AnyAsync(a => a.SerialNumber == SerialNumber && !a.IsDeleted);
+
+                    if (serialExists)
+                    {
+                        TempData["Error"] = $"Serial number '{SerialNumber}' already exists.";
+                        return RedirectToAction("Assets");
+                    }
+                }
+
+                // =========================================================
+                // 8. CONVERT CONDITION STRING TO ENUM
+                // =========================================================
+
+                AssetCondition conditionEnum;
+                if (!Enum.TryParse<AssetCondition>(Condition, true, out conditionEnum))
+                {
+                    conditionEnum = AssetCondition.New;
+                    Console.WriteLine($"Failed to parse condition '{Condition}', defaulting to New");
+                }
+
+                // =========================================================
+                // 9. CREATE ASSET
+                // =========================================================
+
+                var asset = new Asset
+                {
+                    AssetCode = AssetCode,
+                    AssetCategoryId = AssetCategoryId,
+                    AssetName = AssetName,
+                    Brand = Brand,
+                    Model = Model,
+                    SerialNumber = SerialNumber,
+                    VendorName = VendorName,
+                    InvoiceNumber = InvoiceNumber,
+                    PurchaseDate = PurchaseDate,
+                    PurchaseCost = PurchaseCost,
+                    WarrantyStartDate = WarrantyStartDate,
+                    WarrantyEndDate = WarrantyEndDate,
+                    Configuration = Configuration,
+                    Description = Description,
+                    Location = Location,
+                    Condition = conditionEnum,
+                    Status = AssetStatus.Available,
+                    CurrentEmployeeId = null,
+                    IsActive = true,
+                    IsDeleted = false,
+                    AddedBy = currentUserId.Value,
+                    AddedDate = DateTime.Now
+                };
+
+                // =========================================================
+                // 10. INSERT ASSET
+                // =========================================================
+
+                _db.Assets.Add(asset);
+                await _db.SaveChangesAsync();
+
+                // =========================================================
+                // 11. ADD ASSET HISTORY
+                // =========================================================
+
+                _db.AssetHistories.Add(new AssetHistory
+                {
+                    AssetId = asset.Id,
+                    Action = "Asset Created",
+                    NewValue = asset.AssetName,
+                    Remarks = "Asset added to Asset Master.",
+                    PerformedBy = currentUserId.Value,
+                    PerformedDate = DateTime.Now
+                });
+
+                await _db.SaveChangesAsync();
+
+                TempData["Success"] = $"Asset '{asset.AssetName}' added successfully.";
+                return RedirectToAction("Assets");
+            }
+            catch (DbUpdateException ex)
+            {
+                Console.WriteLine($"DATABASE ERROR: {ex.Message}");
+                Console.WriteLine($"INNER: {ex.InnerException?.Message}");
+                TempData["Error"] = $"Database error: {ex.InnerException?.Message ?? ex.Message}";
+                return RedirectToAction("Assets");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"ERROR: {ex.Message}");
+                Console.WriteLine($"STACK: {ex.StackTrace}");
+                TempData["Error"] = $"Error: {ex.Message}";
+                return RedirectToAction("Assets");
+            }
+        }
+
+        [AuthorizeAdmin]
+        [HttpGet]
+        public async Task<IActionResult> AssetCategories()
+        {
+            var categories = await _db.AssetCategories
+                .Include(c => c.Assets)
+                .Where(c => c.IsActive)
+                .OrderBy(c => c.Name)
+                .ToListAsync();
+
+            return View(categories);
+        }
+
+        [AuthorizeAdmin]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddAssetCategory(
+    string name,
+    string? description)
+        {
+            // -------------------------
+            // Validate
+            // -------------------------
+
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                TempData["Error"] = "Category name is required.";
+                return RedirectToAction("AssetCategories");
+            }
+
+            name = name.Trim();
+
+            // -------------------------
+            // Check duplicate
+            // -------------------------
+
+            bool exists = await _db.AssetCategories
+                .AnyAsync(c =>
+                    c.IsActive &&
+                    c.Name.ToLower() == name.ToLower());
+
+            if (exists)
+            {
+                TempData["Error"] = "Asset category already exists.";
+                return RedirectToAction("AssetCategories");
+            }
+
+            // -------------------------
+            // Logged-in user
+            // -------------------------
+
+            var currentUserId = HttpContext.Session.GetInt32("UserId");
+
+            if (currentUserId == null)
+            {
+                TempData["Error"] =
+                    "Your session has expired. Please login again.";
+
+                return RedirectToAction("Login", "Account");
+            }
+
+            // -------------------------
+            // Create category
+            // -------------------------
+
+            var category = new AssetCategory
+            {
+                Name = name,
+
+                Description = string.IsNullOrWhiteSpace(description)
+                    ? null
+                    : description.Trim(),
+
+                IsActive = true,
+
+                CreatedBy = currentUserId.Value,
+
+                CreatedDate = DateTime.Now
+            };
+
+            _db.AssetCategories.Add(category);
+
+            await _db.SaveChangesAsync();
+
+            TempData["Success"] =
+                "Asset category added successfully.";
+
+            return RedirectToAction("AssetCategories");
+        }
+
+
+        [AuthorizeAdmin]
+        [HttpGet]
+        public async Task<IActionResult> EditAssetCategory(int id)
+        {
+            var category = await _db.AssetCategories
+                .FirstOrDefaultAsync(c =>
+                    c.Id == id &&
+                    c.IsActive);
+
+            if (category == null)
+            {
+                TempData["Error"] = "Asset category not found.";
+                return RedirectToAction("AssetCategories");
+            }
+
+            return View(category);
+        }
+        [AuthorizeAdmin]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditAssetCategory(
+    AssetCategory model)
+        {
+            if (!ModelState.IsValid)
+                return View(model);
+
+            var category = await _db.AssetCategories
+                .FirstOrDefaultAsync(c =>
+                    c.Id == model.Id &&
+                    c.IsActive);
+
+            if (category == null)
+            {
+                TempData["Error"] =
+                    "Asset category not found.";
+
+                return RedirectToAction("AssetCategories");
+            }
+
+            // Check duplicate category name
+            bool duplicate = await _db.AssetCategories
+                .AnyAsync(c =>
+                    c.Id != model.Id &&
+                    c.IsActive &&
+                    c.Name.ToLower() == model.Name.Trim().ToLower());
+
+            if (duplicate)
+            {
+                TempData["Error"] =
+                    "Another asset category with this name already exists.";
+
+                return RedirectToAction("AssetCategories");
+            }
+
+            category.Name = model.Name.Trim();
+
+            category.Description =
+                string.IsNullOrWhiteSpace(model.Description)
+                    ? null
+                    : model.Description.Trim();
+
+            await _db.SaveChangesAsync();
+
+            TempData["Success"] =
+                "Asset category updated successfully.";
+
+            return RedirectToAction("AssetCategories");
+        }
+        [AuthorizeAdmin]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteAssetCategory(int id)
+        {
+            var category = await _db.AssetCategories
+                .FirstOrDefaultAsync(c =>
+                    c.Id == id &&
+                    c.IsActive);
+
+            if (category == null)
+            {
+                TempData["Error"] =
+                    "Asset category not found.";
+
+                return RedirectToAction("AssetCategories");
+            }
+
+            // Check whether assets are using this category
+            bool hasAssets = await _db.Assets
+                .AnyAsync(a =>
+                    a.AssetCategoryId == id &&
+                    !a.IsDeleted);
+
+            if (hasAssets)
+            {
+                TempData["Error"] =
+                    "This category cannot be deleted because assets are already assigned to it.";
+
+                return RedirectToAction("AssetCategories");
+            }
+
+            category.IsActive = false;
+
+            await _db.SaveChangesAsync();
+
+            TempData["Success"] =
+                "Asset category deleted successfully.";
+
+            return RedirectToAction("AssetCategories");
+        }
 
         [AuthorizeAdmin]
         [HttpGet]
