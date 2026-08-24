@@ -135,41 +135,87 @@
 </div>
 
 
-<!-- CALENDAR + UPCOMING HOLIDAYS -->
-<div class="row mt-4 g-4">
+<<!-- CALENDAR + UPCOMING HOLIDAYS -->
+    <div class="row mt-4 g-4">
 
-    <div class="col-lg-8">
-        <div class="card shadow-sm border-0 dashboard-card p-3 h-100">
-            <h4 class="text-center mb-3">📅 Calendar</h4>
-            <div id="calendar"></div>
-        </div>
-    </div>
+        <!-- CALENDAR -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 dashboard-card p-3 h-100">
 
-    <div class="col-lg-4">
-        <div class="card shadow-sm border-0 dashboard-card p-3 h-100">
-            <h6 class="mb-3"><i class="bi bi-calendar-event me-2"></i>Upcoming Holidays</h6>
+                <h4 class="text-center mb-3">📅 Calendar</h4>
 
-            @if (ViewBag.UpcomingHolidays != null && ((IEnumerable<SquadInternal.Models.SquadHoliday>)ViewBag.UpcomingHolidays).Any())
-            {
-                foreach (var holiday in (IEnumerable<SquadInternal.Models.SquadHoliday>)ViewBag.UpcomingHolidays)
-                {
-                    <div class="holiday-list-item">
-                        <div class="holiday-date-badge">
-                            @holiday.HolidayDate.ToString("dd")
-                            <small>@holiday.HolidayDate.ToString("MMM")</small>
-                        </div>
-                        <div>
-                            <div class="fw-semibold">@holiday.Name</div>
-                            <div class="text-muted" style="font-size:12px;">@holiday.HolidayDate.ToString("dddd")</div>
-                        </div>
+                <div id="calendar"></div>
+
+                <!-- Calendar Legend -->
+                <div class="calendar-legend mt-3">
+
+                    <div class="calendar-legend-item">
+                        <span class="calendar-legend-color holiday-legend"></span>
+                        <span>Holiday</span>
                     </div>
-                }
-            }
-            else
-            {
-                <p class="text-muted mb-0">No upcoming holidays.</p>
-            }
+
+                    <div class="calendar-legend-item">
+                        <span class="calendar-legend-color leave-legend"></span>
+                        <span>Approved Leave</span>
+                    </div>
+
+                    <div class="calendar-legend-item">
+                        <span class="calendar-legend-color today-legend"></span>
+                        <span>Today</span>
+                    </div>
+
+                </div>
+
+            </div>
         </div>
+
+        <!-- UPCOMING HOLIDAYS -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 dashboard-card p-3 h-100">
+
+                <h6 class="mb-3">
+                    <i class="bi bi-calendar-event me-2"></i>
+                    Upcoming Holidays
+                </h6>
+
+                @if (ViewBag.UpcomingHolidays != null &&
+                    ((IEnumerable<SquadInternal.Models.SquadHoliday>)ViewBag.UpcomingHolidays).Any())
+                {
+                    foreach (var holiday in
+                        (IEnumerable<SquadInternal.Models.SquadHoliday>)ViewBag.UpcomingHolidays)
+                    {
+                        <div class="holiday-list-item">
+
+                            <div class="holiday-date-badge">
+                                @holiday.HolidayDate.ToString("dd")
+                                <small>
+                                    @holiday.HolidayDate.ToString("MMM")
+                                </small>
+                            </div>
+
+                            <div>
+                                <div class="fw-semibold">
+                                    @holiday.Name
+                                </div>
+
+                                <div class="text-muted" style="font-size:12px;">
+                                    @holiday.HolidayDate.ToString("dddd")
+                                </div>
+                            </div>
+
+                        </div>
+                    }
+                }
+                else
+                {
+                    <p class="text-muted mb-0">
+                        No upcoming holidays.
+                    </p>
+                }
+
+            </div>
+        </div>
+
     </div>
 
 </div>

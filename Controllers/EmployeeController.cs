@@ -28,19 +28,37 @@ namespace SquadInternal.Controllers
         }
 
         // ================= MY PROFILE =================
-        public async Task<IActionResult> Profile()
+        public async Task<IActionResult> Profile(int? id)
         {
             var userId = HttpContext.Session.GetInt32("UserId");
+            var roleId = HttpContext.Session.GetInt32("RoleId");
 
             if (userId == null)
                 return RedirectToAction("Login", "Account");
 
-            var employee = await _db.Employees
-                .Include(e => e.User)
-                    .ThenInclude(u => u!.Role)
-                .Include(e => e.ReportingToUser)
-                .Include(e => e.Educations)
-                .FirstOrDefaultAsync(e => e.UserId == userId && e.IsActive);
+            Employee? employee = null;
+
+            // If admin requested a specific employee id, allow viewing that profile
+            if (id.HasValue && roleId == 1)
+            {
+                employee = await _db.Employees
+                    .Include(e => e.User)
+                        .ThenInclude(u => u!.Role)
+                    .Include(e => e.ReportingToUser)
+                    .Include(e => e.Educations)
+                    .FirstOrDefaultAsync(e => e.Id == id.Value && !e.IsDeleted);
+            }
+
+            // Otherwise show current user's profile
+            if (employee == null)
+            {
+                employee = await _db.Employees
+                    .Include(e => e.User)
+                        .ThenInclude(u => u!.Role)
+                    .Include(e => e.ReportingToUser)
+                    .Include(e => e.Educations)
+                    .FirstOrDefaultAsync(e => e.UserId == userId && e.IsActive);
+            }
 
             if (employee == null)
                 return Content("Employee record not found. Please contact admin.");
@@ -51,6 +69,15 @@ namespace SquadInternal.Controllers
                 .ToListAsync();
 
             ViewBag.Documents = documents;
+
+            // Assigned assets for this employee (current assignments)
+            var assignedAssets = await _db.AssetAssignments
+                .Where(a => a.EmployeeId == employee.Id && a.IsCurrent)
+                .Include(a => a.Asset)
+                .OrderByDescending(a => a.AssignedDate)
+                .ToListAsync();
+
+            ViewBag.AssignedAssets = assignedAssets;
 
             return View(employee);
         }

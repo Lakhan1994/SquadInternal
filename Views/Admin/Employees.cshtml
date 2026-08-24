@@ -5,6 +5,7 @@
     ViewData["Title"] = "Employees";
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
     var roles = ViewBag.Roles as List<Role>;
+    var sessionRoleId = Context.Session.GetInt32("RoleId");
     var currentYear = DateTime.Now.Year;
     var maxYear = 2026;
     var yearList = new List<int>();
@@ -381,17 +382,51 @@
                             @{
                                 var listInitials = $"{e.FirstName?.FirstOrDefault()}{e.LastName?.FirstOrDefault()}".ToUpper();
                             }
-                            @if (!string.IsNullOrWhiteSpace(e.ProfilePicturePath))
+                            @if (sessionRoleId == 1)
                             {
-                                <img src="@Url.Action("GetProfilePicture", "Admin", new { employeeId = e.Id })" data-employee-id="@e.Id" class="emp-avatar-img" alt="@e.FullName" />
+                                <a asp-controller="Admin" asp-action="EmployeeProfile" asp-route-id="@e.Id" class="text-decoration-none">
+                                    @if (!string.IsNullOrWhiteSpace(e.ProfilePicturePath))
+                                    {
+                                        <img src="@Url.Action("GetProfilePicture", "Admin", new { employeeId = e.Id })" data-employee-id="@e.Id" class="emp-avatar-img" alt="@e.FullName" />
+                                    }
+                                    else
+                                    {
+                                        <span class="emp-avatar-initials" data-employee-id="@e.Id">@listInitials</span>
+                                    }
+                                </a>
                             }
                             else
                             {
-                                <span class="emp-avatar-initials" data-employee-id="@e.Id">@listInitials</span>
+                                @if (!string.IsNullOrWhiteSpace(e.ProfilePicturePath))
+                                {
+                                    <img src="@Url.Action("GetProfilePicture", "Admin", new { employeeId = e.Id })" data-employee-id="@e.Id" class="emp-avatar-img" alt="@e.FullName" />
+                                }
+                                else
+                                {
+                                    <span class="emp-avatar-initials" data-employee-id="@e.Id">@listInitials</span>
+                                }
                             }
                         </td>
-                        <td>@e.FirstName</td>
-                        <td>@e.LastName</td>
+                        <td>
+                            @if (sessionRoleId == 1)
+                            {
+                                <a asp-controller="Admin" asp-action="EmployeeProfile" asp-route-id="@e.Id" class="text-decoration-none">@e.FirstName</a>
+                            }
+                            else
+                            {
+                                @e.FirstName
+                            }
+                        </td>
+                        <td>
+                            @if (sessionRoleId == 1)
+                            {
+                                <a asp-controller="Admin" asp-action="EmployeeProfile" asp-route-id="@e.Id" class="text-decoration-none">@e.LastName</a>
+                            }
+                            else
+                            {
+                                @e.LastName
+                            }
+                        </td>
                         <td>@(e.User?.Role?.Name ?? "-")</td>
                         <td>@(e.ReportingToUser?.Name ?? "-")</td>
                         <td>@(e.AddedByUser?.Name ?? "Admin")</td>

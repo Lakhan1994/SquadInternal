@@ -1,0 +1,77 @@
+@model SquadInternal.Models.Asset
+
+<div class="modal fade" id="viewAssetModal-@Model.Id" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header asset-modal-header">
+                <h5 class="modal-title asset-modal-title">Asset Details - @Model.AssetName</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body asset-modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Identification</h6>
+                        <dl class="row">
+                            <dt class="col-sm-4">Asset Code</dt>
+                            <dd class="col-sm-8">@Model.AssetCode</dd>
+                            <dt class="col-sm-4">Category</dt>
+                            <dd class="col-sm-8">@Model.AssetCategory?.Name</dd>
+                            <dt class="col-sm-4">Brand</dt>
+                            <dd class="col-sm-8">@Model.Brand</dd>
+                            <dt class="col-sm-4">Model</dt>
+                            <dd class="col-sm-8">@Model.Model</dd>
+                            <dt class="col-sm-4">Serial Number</dt>
+                            <dd class="col-sm-8">@Model.SerialNumber</dd>
+                        </dl>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Status</h6>
+                        <dl class="row">
+                            <dt class="col-sm-4">Condition</dt>
+                            <dd class="col-sm-8">@Model.Condition</dd>
+                            <dt class="col-sm-4">Status</dt>
+                            <dd class="col-sm-8">@Model.Status</dd>
+                            <dt class="col-sm-4">Assigned To</dt>
+                            <dd class="col-sm-8">@(Model.CurrentEmployee != null ? Model.CurrentEmployee.FirstName + " " + Model.CurrentEmployee.LastName : "Not Assigned")</dd>
+                        </dl>
+                    </div>
+                </div>
+
+                <hr />
+
+                <h6>Purchase & Warranty</h6>
+                <div class="row">
+                    <div class="col-md-4">
+                        <strong>Vendor:</strong> @Model.VendorName
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Invoice #:</strong> @Model.InvoiceNumber
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Purchase Cost:</strong> @Model.PurchaseCost?.ToString("N2")
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-md-4">
+                        <strong>Purchase Date:</strong> @Model.PurchaseDate?.ToString("yyyy-MM-dd")
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Warranty Start:</strong> @Model.WarrantyStartDate?.ToString("yyyy-MM-dd")
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Warranty End:</strong> @Model.WarrantyEndDate?.ToString("yyyy-MM-dd")
+                    </div>
+                </div>
+
+                <hr />
+
+                <h6>Additional</h6>
+                <p>@Model.Description</p>
+
+            </div>
+            <div class="modal-footer asset-modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>

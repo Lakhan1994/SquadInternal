@@ -66,8 +66,20 @@ namespace SquadInternal.Controllers
             int? roleId = HttpContext.Session.GetInt32("RoleId");
             bool isAdmin = roleId == 1;
 
-            ViewBag.EmployeeCount = await _db.Employees.CountAsync(e => e.IsActive);
-            ViewBag.RoleCount = await _db.Roles.CountAsync(r => r.IsActive);
+            // ==========================================
+            // DASHBOARD COUNTS
+            // ==========================================
+
+            ViewBag.EmployeeCount =
+                await _db.Employees.CountAsync(e => e.IsActive);
+
+            ViewBag.RoleCount =
+                await _db.Roles.CountAsync(r => r.IsActive);
+
+
+            // ==========================================
+            // HOLIDAYS
+            // ==========================================
 
             var holidayDates = await _db.SquadHolidays
                 .Where(h => h.IsActive)
@@ -77,43 +89,89 @@ namespace SquadInternal.Controllers
             ViewBag.Holidays = holidayDates;
 
             ViewBag.UpcomingHolidays = await _db.SquadHolidays
-                .Where(h => h.IsActive && h.HolidayDate.Date >= DateTime.Today)
+                .Where(h =>
+                    h.IsActive &&
+                    h.HolidayDate.Date >= DateTime.Today)
                 .OrderBy(h => h.HolidayDate)
                 .Take(5)
                 .ToListAsync();
 
             ViewBag.Today = DateTime.Today;
 
+
+            // ==========================================
+            // CURRENT EMPLOYEE
+            // ==========================================
+
             var employee = await GetCurrentEmployeeAsync();
+
+
+            // ==========================================
+            // ADMIN
+            // Show ALL approved employee leaves
+            // ==========================================
 
             if (isAdmin)
             {
-                ViewBag.PendingLeaveCount = await _db.EmployeeLeaves
-                    .CountAsync(l => l.Status == "Pending");
+                ViewBag.PendingLeaveCount =
+                    await _db.EmployeeLeaves
+                        .CountAsync(l => l.Status == "Pending");
+
+                var allApprovedLeaves = await _db.EmployeeLeaves
+                    .Where(l => l.Status == "Approved")
+                    .ToListAsync();
+
+                ViewBag.ApprovedLeaveDates = allApprovedLeaves
+                    .SelectMany(l => ExpandDates(l.FromDate, l.ToDate))
+                    .Distinct()
+                    .ToList();
             }
 
-            if (employee != null)
+
+            // ==========================================
+            // NORMAL EMPLOYEE
+            // Show only their own approved leaves
+            // ==========================================
+
+            else if (employee != null)
             {
                 var approvedLeaves = await _db.EmployeeLeaves
-                    .Where(l => l.EmployeeId == employee.Id && l.Status == "Approved")
+                    .Where(l =>
+                        l.EmployeeId == employee.Id &&
+                        l.Status == "Approved")
                     .ToListAsync();
 
                 ViewBag.ApprovedLeaveDates = approvedLeaves
                     .SelectMany(l => ExpandDates(l.FromDate, l.ToDate))
+                    .Distinct()
                     .ToList();
 
-                ViewBag.MyPendingLeaveCount = await _db.EmployeeLeaves
-                    .CountAsync(l => l.EmployeeId == employee.Id && l.Status == "Pending");
+                ViewBag.MyPendingLeaveCount =
+                    await _db.EmployeeLeaves
+                        .CountAsync(l =>
+                            l.EmployeeId == employee.Id &&
+                            l.Status == "Pending");
 
-                ViewBag.MyApprovedLeaveCount = approvedLeaves.Count;
+                ViewBag.MyApprovedLeaveCount =
+                    approvedLeaves.Count;
 
-                ViewBag.EmployeeName = employee.FullName;
+                ViewBag.EmployeeName =
+                    employee.FullName;
+            }
+
+
+            // ==========================================
+            // SAFETY
+            // ==========================================
+
+            if (ViewBag.ApprovedLeaveDates == null)
+            {
+                ViewBag.ApprovedLeaveDates = new List<DateTime>();
             }
 
 
             return View();
         }
-
 
         // ================= ROLES =================
         [AuthorizeAdmin]
@@ -1379,29 +1437,20 @@ namespace SquadInternal.Controllers
                 .OrderBy(c => c.Name)
                 .ToListAsync();
 
+            // Provide employee list so assign modal dropdown can be populated
+            ViewBag.Employees = await _db.Employees
+                .Where(e => e.IsActive && !e.IsDeleted)
+                .OrderBy(e => e.FirstName)
+                .ThenBy(e => e.LastName)
+                .ToListAsync();
+
             return View(assets);
         }
 
         [AuthorizeAdmin]
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> AddAsset(
-     string AssetCode,
-     string AssetName,
-     int AssetCategoryId,
-     string? Brand,
-     string? Model,
-     string? SerialNumber,
-     string? VendorName,
-     string? InvoiceNumber,
-     DateTime? PurchaseDate,
-     decimal? PurchaseCost,
-     DateTime? WarrantyStartDate,
-     DateTime? WarrantyEndDate,
-     string? Configuration,
-     string? Description,
-     string? Location,
-     string Condition)
+        public async Task<IActionResult> AddAsset(AssetVM model)
         {
             try
             {
@@ -1410,11 +1459,11 @@ namespace SquadInternal.Controllers
                 // =========================================================
 
                 Console.WriteLine("=================================");
-                Console.WriteLine("ADD ASSET REQUEST - INDIVIDUAL PARAMS");
-                Console.WriteLine($"AssetCode       : {AssetCode}");
-                Console.WriteLine($"AssetName       : {AssetName}");
-                Console.WriteLine($"AssetCategoryId : {AssetCategoryId}");
-                Console.WriteLine($"Condition       : {Condition}");
+                Console.WriteLine("ADD ASSET REQUEST - MODEL");
+                Console.WriteLine($"AssetCode       : {model.AssetCode}");
+                Console.WriteLine($"AssetName       : {model.AssetName}");
+                Console.WriteLine($"AssetCategoryId : {model.AssetCategoryId}");
+                Console.WriteLine($"Condition       : {model.Condition}");
                 Console.WriteLine("=================================");
 
                 // =========================================================
@@ -1433,35 +1482,144 @@ namespace SquadInternal.Controllers
                 // 3. CLEAN STRING VALUES
                 // =========================================================
 
-                AssetCode = AssetCode?.Trim();
-                AssetName = AssetName?.Trim();
-                Brand = Brand?.Trim();
-                Model = Model?.Trim();
-                SerialNumber = SerialNumber?.Trim();
-                VendorName = VendorName?.Trim();
-                InvoiceNumber = InvoiceNumber?.Trim();
-                Configuration = Configuration?.Trim();
-                Description = Description?.Trim();
-                Location = Location?.Trim();
-                Condition = Condition?.Trim();
+                if (string.IsNullOrWhiteSpace(model.AssetCode) &&
+     Request.Form.ContainsKey("AssetCode"))
+                {
+                    model.AssetCode = Request.Form["AssetCode"].ToString();
+                }
+
+                if (string.IsNullOrWhiteSpace(model.AssetName) &&
+                    Request.Form.ContainsKey("AssetName"))
+                {
+                    model.AssetName = Request.Form["AssetName"].ToString();
+                }
+
+                if (string.IsNullOrWhiteSpace(model.Brand) &&
+                    Request.Form.ContainsKey("Brand"))
+                {
+                    model.Brand = Request.Form["Brand"].ToString();
+                }
+
+                if (string.IsNullOrWhiteSpace(model.Model) &&
+                    Request.Form.ContainsKey("Model"))
+                {
+                    model.Model = Request.Form["Model"].ToString();
+                }
+
+                if (string.IsNullOrWhiteSpace(model.SerialNumber) &&
+                    Request.Form.ContainsKey("SerialNumber"))
+                {
+                    model.SerialNumber = Request.Form["SerialNumber"].ToString();
+                }
+
+                if (string.IsNullOrWhiteSpace(model.VendorName) &&
+                    Request.Form.ContainsKey("VendorName"))
+                {
+                    model.VendorName = Request.Form["VendorName"].ToString();
+                }
+
+                if (string.IsNullOrWhiteSpace(model.InvoiceNumber) &&
+                    Request.Form.ContainsKey("InvoiceNumber"))
+                {
+                    model.InvoiceNumber = Request.Form["InvoiceNumber"].ToString();
+                }
+
+                if (string.IsNullOrWhiteSpace(model.Configuration) &&
+                    Request.Form.ContainsKey("Configuration"))
+                {
+                    model.Configuration = Request.Form["Configuration"].ToString();
+                }
+
+                if (string.IsNullOrWhiteSpace(model.Description) &&
+                    Request.Form.ContainsKey("Description"))
+                {
+                    model.Description = Request.Form["Description"].ToString();
+                }
+
+                if (string.IsNullOrWhiteSpace(model.Location) &&
+                    Request.Form.ContainsKey("Location"))
+                {
+                    model.Location = Request.Form["Location"].ToString();
+                }
+
+                // Category fallback
+                if (model.AssetCategoryId <= 0 &&
+                    Request.Form.ContainsKey("AssetCategoryId") &&
+                    int.TryParse(Request.Form["AssetCategoryId"], out var categoryId))
+                {
+                    model.AssetCategoryId = categoryId;
+                }
+
+                // Condition fallback
+                if (Request.Form.ContainsKey("Condition"))
+                {
+                    model.Condition = Request.Form["Condition"].ToString();
+                }
+
+                // Numeric fallback
+                if (!model.PurchaseCost.HasValue &&
+                    Request.Form.ContainsKey("PurchaseCost") &&
+                    decimal.TryParse(Request.Form["PurchaseCost"], out var purchaseCost))
+                {
+                    model.PurchaseCost = purchaseCost;
+                }
+
+                // Date fallbacks
+                if (!model.PurchaseDate.HasValue &&
+                    Request.Form.ContainsKey("PurchaseDate") &&
+                    DateTime.TryParse(Request.Form["PurchaseDate"], out var purchaseDate))
+                {
+                    model.PurchaseDate = purchaseDate;
+                }
+
+                if (!model.WarrantyStartDate.HasValue &&
+                    Request.Form.ContainsKey("WarrantyStartDate") &&
+                    DateTime.TryParse(Request.Form["WarrantyStartDate"], out var warrantyStart))
+                {
+                    model.WarrantyStartDate = warrantyStart;
+                }
+
+                if (!model.WarrantyEndDate.HasValue &&
+                    Request.Form.ContainsKey("WarrantyEndDate") &&
+                    DateTime.TryParse(Request.Form["WarrantyEndDate"], out var warrantyEnd))
+                {
+                    model.WarrantyEndDate = warrantyEnd;
+                }
+
+
+                // =========================================================
+                // 4. CLEAN STRING VALUES
+                // =========================================================
+
+                model.AssetCode = model.AssetCode?.Trim();
+                model.AssetName = model.AssetName?.Trim();
+                model.Brand = model.Brand?.Trim();
+                model.Model = model.Model?.Trim();
+                model.SerialNumber = model.SerialNumber?.Trim();
+                model.VendorName = model.VendorName?.Trim();
+                model.InvoiceNumber = model.InvoiceNumber?.Trim();
+                model.Configuration = model.Configuration?.Trim();
+                model.Description = model.Description?.Trim();
+                model.Location = model.Location?.Trim();
+                model.Condition = model.Condition?.Trim();
 
                 // =========================================================
                 // 4. VALIDATE REQUIRED FIELDS
                 // =========================================================
 
-                if (string.IsNullOrWhiteSpace(AssetCode))
+                if (string.IsNullOrWhiteSpace(model.AssetCode))
                 {
                     TempData["Error"] = "Asset code is required.";
                     return RedirectToAction("Assets");
                 }
 
-                if (string.IsNullOrWhiteSpace(AssetName))
+                if (string.IsNullOrWhiteSpace(model.AssetName))
                 {
                     TempData["Error"] = "Asset name is required.";
                     return RedirectToAction("Assets");
                 }
 
-                if (AssetCategoryId <= 0)
+                if (model.AssetCategoryId <= 0)
                 {
                     TempData["Error"] = "Please select a valid asset category.";
                     return RedirectToAction("Assets");
@@ -1473,11 +1631,11 @@ namespace SquadInternal.Controllers
 
                 var category = await _db.AssetCategories
                     .AsNoTracking()
-                    .FirstOrDefaultAsync(c => c.Id == AssetCategoryId && c.IsActive);
+                    .FirstOrDefaultAsync(c => c.Id == model.AssetCategoryId && c.IsActive);
 
                 if (category == null)
                 {
-                    TempData["Error"] = $"Asset category with ID {AssetCategoryId} does not exist or is inactive.";
+                    TempData["Error"] = $"Asset category with ID {model.AssetCategoryId} does not exist or is inactive.";
                     return RedirectToAction("Assets");
                 }
 
@@ -1487,11 +1645,11 @@ namespace SquadInternal.Controllers
 
                 var assetCodeExists = await _db.Assets
                     .AsNoTracking()
-                    .AnyAsync(a => a.AssetCode == AssetCode && !a.IsDeleted);
+                    .AnyAsync(a => a.AssetCode == model.AssetCode && !a.IsDeleted);
 
                 if (assetCodeExists)
                 {
-                    TempData["Error"] = $"Asset code '{AssetCode}' already exists.";
+                    TempData["Error"] = $"Asset code '{model.AssetCode}' already exists.";
                     return RedirectToAction("Assets");
                 }
 
@@ -1499,15 +1657,15 @@ namespace SquadInternal.Controllers
                 // 7. CHECK DUPLICATE SERIAL NUMBER
                 // =========================================================
 
-                if (!string.IsNullOrWhiteSpace(SerialNumber))
+                if (!string.IsNullOrWhiteSpace(model.SerialNumber))
                 {
                     var serialExists = await _db.Assets
                         .AsNoTracking()
-                        .AnyAsync(a => a.SerialNumber == SerialNumber && !a.IsDeleted);
+                        .AnyAsync(a => a.SerialNumber == model.SerialNumber && !a.IsDeleted);
 
                     if (serialExists)
                     {
-                        TempData["Error"] = $"Serial number '{SerialNumber}' already exists.";
+                        TempData["Error"] = $"Serial number '{model.SerialNumber}' already exists.";
                         return RedirectToAction("Assets");
                     }
                 }
@@ -1517,10 +1675,10 @@ namespace SquadInternal.Controllers
                 // =========================================================
 
                 AssetCondition conditionEnum;
-                if (!Enum.TryParse<AssetCondition>(Condition, true, out conditionEnum))
+                if (!Enum.TryParse<AssetCondition>(model.Condition, true, out conditionEnum))
                 {
                     conditionEnum = AssetCondition.New;
-                    Console.WriteLine($"Failed to parse condition '{Condition}', defaulting to New");
+                    Console.WriteLine($"Failed to parse condition '{model.Condition}', defaulting to New");
                 }
 
                 // =========================================================
@@ -1529,21 +1687,21 @@ namespace SquadInternal.Controllers
 
                 var asset = new Asset
                 {
-                    AssetCode = AssetCode,
-                    AssetCategoryId = AssetCategoryId,
-                    AssetName = AssetName,
-                    Brand = Brand,
-                    Model = Model,
-                    SerialNumber = SerialNumber,
-                    VendorName = VendorName,
-                    InvoiceNumber = InvoiceNumber,
-                    PurchaseDate = PurchaseDate,
-                    PurchaseCost = PurchaseCost,
-                    WarrantyStartDate = WarrantyStartDate,
-                    WarrantyEndDate = WarrantyEndDate,
-                    Configuration = Configuration,
-                    Description = Description,
-                    Location = Location,
+                    AssetCode = model.AssetCode,
+                    AssetCategoryId = model.AssetCategoryId,
+                    AssetName = model.AssetName,
+                    Brand = model.Brand,
+                    Model = model.Model,
+                    SerialNumber = model.SerialNumber,
+                    VendorName = model.VendorName,
+                    InvoiceNumber = model.InvoiceNumber,
+                    PurchaseDate = model.PurchaseDate,
+                    PurchaseCost = model.PurchaseCost,
+                    WarrantyStartDate = model.WarrantyStartDate,
+                    WarrantyEndDate = model.WarrantyEndDate,
+                    Configuration = model.Configuration,
+                    Description = model.Description,
+                    Location = model.Location,
                     Condition = conditionEnum,
                     Status = AssetStatus.Available,
                     CurrentEmployeeId = null,
@@ -1593,6 +1751,861 @@ namespace SquadInternal.Controllers
                 TempData["Error"] = $"Error: {ex.Message}";
                 return RedirectToAction("Assets");
             }
+        }
+        [AuthorizeAdmin]
+        [HttpGet]
+        public async Task<IActionResult> EditAsset(int id)
+        {
+            var asset = await _db.Assets
+                .Include(a => a.AssetCategory)
+                .FirstOrDefaultAsync(a =>
+                    a.Id == id &&
+
+                    !a.IsDeleted);
+
+            if (asset == null)
+            {
+                // Helpful diagnostic: check if asset exists but is deleted
+                var existsDeleted = await _db.Assets
+                    .AnyAsync(a => a.Id == id && a.IsDeleted);
+
+                if (existsDeleted)
+                {
+                    Console.WriteLine($"EDIT ASSET GET: Asset id={id} exists but IsDeleted=true");
+                    TempData["Error"] = "Asset not found (it may have been deleted).";
+                }
+                else
+                {
+                    Console.WriteLine($"EDIT ASSET GET: Asset id={id} not found in database");
+                    TempData["Error"] = "Asset not found.";
+                }
+
+                return RedirectToAction("Assets");
+            }
+
+            // Active categories for dropdown
+            ViewBag.AssetCategories = await _db.AssetCategories
+                .Where(c => c.IsActive)
+                .OrderBy(c => c.Name)
+                .ToListAsync();
+
+            // Map entity to VM
+            var vm = new Models.ViewModels.AssetVM
+            {
+                Id = asset.Id,
+                AssetCode = asset.AssetCode,
+                AssetCategoryId = asset.AssetCategoryId,
+                AssetName = asset.AssetName,
+                Brand = asset.Brand,
+                Model = asset.Model,
+                SerialNumber = asset.SerialNumber,
+                VendorName = asset.VendorName,
+                InvoiceNumber = asset.InvoiceNumber,
+                PurchaseDate = asset.PurchaseDate,
+                PurchaseCost = asset.PurchaseCost,
+                WarrantyStartDate = asset.WarrantyStartDate,
+                WarrantyEndDate = asset.WarrantyEndDate,
+                Configuration = asset.Configuration,
+                Description = asset.Description,
+                Location = asset.Location,
+                Condition = asset.Condition.ToString()
+            };
+
+            return View(vm);
+        }
+        [AuthorizeAdmin]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditAsset(Models.ViewModels.AssetVM model)
+        {
+            try
+            {
+                // =========================================
+                // =========================================
+                // DEBUG: Log the incoming raw form (useful when model binding fails)
+                Console.WriteLine("--- EditAsset POST: Form fields ---");
+                foreach (var key in Request.Form.Keys)
+                {
+                    Console.WriteLine($"FORM[{key}] = {Request.Form[key]}");
+                }
+                Console.WriteLine("--- End Form fields ---");
+
+                // DEBUG: Log the incoming model
+                // =========================================
+
+                Console.WriteLine("=================================");
+                Console.WriteLine("EDIT ASSET POST RECEIVED");
+                Console.WriteLine($"Model Id: {model.Id}");
+                Console.WriteLine($"Model AssetCode: {model.AssetCode}");
+                Console.WriteLine($"Model AssetName: {model.AssetName}");
+                Console.WriteLine($"Model CategoryId: {model.AssetCategoryId}");
+                Console.WriteLine("=================================");
+
+                // Fallbacks: sometimes model binding can lose the Id (hidden field missing/name mismatch).
+                // Try to recover Id from form values or route data before proceeding.
+                if (model.Id <= 0)
+                {
+                    // Try common form names
+                    var formId = Request.Form["Id"].FirstOrDefault() ?? Request.Form["id"].FirstOrDefault();
+
+                    if (!string.IsNullOrWhiteSpace(formId) && int.TryParse(formId, out var parsedId))
+                    {
+                        model.Id = parsedId;
+                        Console.WriteLine($"EDIT ASSET POST: recovered model.Id from form = {model.Id}");
+                    }
+                    else if (RouteData.Values.ContainsKey("id") && int.TryParse(RouteData.Values["id"]?.ToString(), out var routeId))
+                    {
+                        model.Id = routeId;
+                        Console.WriteLine($"EDIT ASSET POST: recovered model.Id from route = {model.Id}");
+                    }
+                    else
+                    {
+                        Console.WriteLine("EDIT ASSET POST: model.Id missing and could not be recovered from form/route");
+                    }
+                }
+
+                // =========================================
+                // 1. CURRENT USER
+                // =========================================
+
+                var currentUserId = HttpContext.Session.GetInt32("UserId");
+
+                if (currentUserId == null)
+                {
+                    TempData["Error"] =
+                        "Your session has expired. Please login again.";
+
+                    return RedirectToAction("Login", "Account");
+                }
+
+                // =========================================
+                // 2. VALIDATE ID
+                // =========================================
+
+                if (model.Id <= 0)
+                {
+                    Console.WriteLine("ERROR: Model Id is 0 or less");
+                    TempData["Error"] = "Invalid asset ID.";
+                    return RedirectToAction("Assets");
+                }
+
+                // =========================================
+                // 3. FIND EXISTING ASSET
+                // =========================================
+
+                var asset = await _db.Assets
+                    .FirstOrDefaultAsync(a =>
+                        a.Id == model.Id &&
+                        !a.IsDeleted);
+
+                if (asset == null)
+                {
+                    Console.WriteLine($"ERROR: Asset with ID {model.Id} not found");
+                    TempData["Error"] = "Asset not found.";
+                    return RedirectToAction("Assets");
+                }
+
+                Console.WriteLine($"Asset found: {asset.Id} - {asset.AssetCode}");
+
+                // =========================================
+                // 4. CLEAN VALUES
+                // =========================================
+                // If model binder failed for some fields, fall back to raw form values so the view redisplays user input
+                if (string.IsNullOrWhiteSpace(model.AssetCode) && Request.Form.ContainsKey("AssetCode"))
+                    model.AssetCode = Request.Form["AssetCode"].ToString();
+
+                if (string.IsNullOrWhiteSpace(model.AssetName) && Request.Form.ContainsKey("AssetName"))
+                    model.AssetName = Request.Form["AssetName"].ToString();
+
+                if (string.IsNullOrWhiteSpace(model.Brand) && Request.Form.ContainsKey("Brand"))
+                    model.Brand = Request.Form["Brand"].ToString();
+
+                if (string.IsNullOrWhiteSpace(model.Model) && Request.Form.ContainsKey("Model"))
+                    model.Model = Request.Form["Model"].ToString();
+
+                if (string.IsNullOrWhiteSpace(model.SerialNumber) && Request.Form.ContainsKey("SerialNumber"))
+                    model.SerialNumber = Request.Form["SerialNumber"].ToString();
+
+                if (string.IsNullOrWhiteSpace(model.VendorName) && Request.Form.ContainsKey("VendorName"))
+                    model.VendorName = Request.Form["VendorName"].ToString();
+
+                if (string.IsNullOrWhiteSpace(model.InvoiceNumber) && Request.Form.ContainsKey("InvoiceNumber"))
+                    model.InvoiceNumber = Request.Form["InvoiceNumber"].ToString();
+
+                if (string.IsNullOrWhiteSpace(model.Configuration) && Request.Form.ContainsKey("Configuration"))
+                    model.Configuration = Request.Form["Configuration"].ToString();
+
+                if (string.IsNullOrWhiteSpace(model.Description) && Request.Form.ContainsKey("Description"))
+                    model.Description = Request.Form["Description"].ToString();
+
+                if (string.IsNullOrWhiteSpace(model.Location) && Request.Form.ContainsKey("Location"))
+                    model.Location = Request.Form["Location"].ToString();
+
+                // Parse numeric/date fallbacks
+                if (!model.PurchaseCost.HasValue && Request.Form.ContainsKey("PurchaseCost") && decimal.TryParse(Request.Form["PurchaseCost"], out var pc))
+                    model.PurchaseCost = pc;
+
+                if (!model.PurchaseDate.HasValue && Request.Form.ContainsKey("PurchaseDate") && DateTime.TryParse(Request.Form["PurchaseDate"], out var pd))
+                    model.PurchaseDate = pd;
+
+                if (!model.WarrantyStartDate.HasValue && Request.Form.ContainsKey("WarrantyStartDate") && DateTime.TryParse(Request.Form["WarrantyStartDate"], out var ws))
+                    model.WarrantyStartDate = ws;
+
+                if (!model.WarrantyEndDate.HasValue && Request.Form.ContainsKey("WarrantyEndDate") && DateTime.TryParse(Request.Form["WarrantyEndDate"], out var we))
+                    model.WarrantyEndDate = we;
+
+                // Category fallback
+                if (model.AssetCategoryId <= 0 && Request.Form.ContainsKey("AssetCategoryId") && int.TryParse(Request.Form["AssetCategoryId"], out var catId))
+                    model.AssetCategoryId = catId;
+
+                // Condition fallback (enum integer)
+                if (Request.Form.ContainsKey("Condition") && Enum.TryParse<AssetCondition>(Request.Form["Condition"], out var cond))
+                    model.Condition = cond.ToString();
+
+                // =========================================
+                // 5. REQUIRED VALIDATION
+                // =========================================
+
+                if (string.IsNullOrWhiteSpace(model.AssetCode))
+                {
+                    ModelState.AddModelError(nameof(model.AssetCode), "Asset code is required.");
+
+                    ViewBag.AssetCategories = await _db.AssetCategories
+                        .Where(c => c.IsActive)
+                        .OrderBy(c => c.Name)
+                        .ToListAsync();
+
+                    return View(model);
+                }
+
+                if (string.IsNullOrWhiteSpace(model.AssetName))
+                {
+                    ModelState.AddModelError(nameof(model.AssetName), "Asset name is required.");
+
+                    ViewBag.AssetCategories = await _db.AssetCategories
+                        .Where(c => c.IsActive)
+                        .OrderBy(c => c.Name)
+                        .ToListAsync();
+
+                    return View(model);
+                }
+
+                if (model.AssetCategoryId <= 0)
+                {
+                    ModelState.AddModelError(nameof(model.AssetCategoryId), "Please select a valid asset category.");
+
+                    ViewBag.AssetCategories = await _db.AssetCategories
+                        .Where(c => c.IsActive)
+                        .OrderBy(c => c.Name)
+                        .ToListAsync();
+
+                    return View(model);
+                }
+
+                // =========================================
+                // 6. CATEGORY VALIDATION
+                // =========================================
+
+                var categoryExists = await _db.AssetCategories
+                    .AnyAsync(c =>
+                        c.Id == model.AssetCategoryId &&
+                        c.IsActive);
+
+                if (!categoryExists)
+                {
+                    ModelState.AddModelError(nameof(model.AssetCategoryId), "Selected asset category is invalid or inactive.");
+
+                    ViewBag.AssetCategories = await _db.AssetCategories
+                        .Where(c => c.IsActive)
+                        .OrderBy(c => c.Name)
+                        .ToListAsync();
+
+                    return View(model);
+                }
+
+                // =========================================
+                // 7. DUPLICATE ASSET CODE
+                // =========================================
+
+                bool duplicateCode = await _db.Assets
+                    .AnyAsync(a =>
+                        a.Id != model.Id &&
+                        a.AssetCode == model.AssetCode &&
+                        !a.IsDeleted);
+
+                if (duplicateCode)
+                {
+                    ModelState.AddModelError(nameof(model.AssetCode), $"Asset code '{model.AssetCode}' already exists.");
+
+                    ViewBag.AssetCategories = await _db.AssetCategories
+                        .Where(c => c.IsActive)
+                        .OrderBy(c => c.Name)
+                        .ToListAsync();
+
+                    return View(model);
+                }
+
+                // =========================================
+                // 8. DUPLICATE SERIAL NUMBER
+                // =========================================
+
+                if (!string.IsNullOrWhiteSpace(model.SerialNumber))
+                {
+                    bool duplicateSerial = await _db.Assets
+                        .AnyAsync(a =>
+                            a.Id != model.Id &&
+                            a.SerialNumber == model.SerialNumber &&
+                            !a.IsDeleted);
+
+                    if (duplicateSerial)
+                    {
+                        ModelState.AddModelError(nameof(model.SerialNumber), $"Serial number '{model.SerialNumber}' already exists.");
+
+                        ViewBag.AssetCategories = await _db.AssetCategories
+                            .Where(c => c.IsActive)
+                            .OrderBy(c => c.Name)
+                            .ToListAsync();
+
+                        return View(model);
+                    }
+                }
+
+                // =========================================
+                // 9. CONDITION VALIDATION
+                // =========================================
+
+                // Parse condition string to enum
+                if (!Enum.TryParse<AssetCondition>(model.Condition, true, out var parsedCondition))
+                {
+                    ModelState.AddModelError(nameof(model.Condition), "Please select a valid asset condition.");
+
+                    ViewBag.AssetCategories = await _db.AssetCategories
+                        .Where(c => c.IsActive)
+                        .OrderBy(c => c.Name)
+                        .ToListAsync();
+
+                    return View(model);
+                }
+
+                // =========================================
+                // 10. STORE OLD VALUES FOR HISTORY
+                // =========================================
+
+                var oldValues = new
+                {
+                    AssetCode = asset.AssetCode,
+                    AssetName = asset.AssetName,
+                    CategoryId = asset.AssetCategoryId,
+                    Brand = asset.Brand,
+                    Model = asset.Model,
+                    SerialNumber = asset.SerialNumber,
+                    VendorName = asset.VendorName,
+                    InvoiceNumber = asset.InvoiceNumber,
+                    PurchaseDate = asset.PurchaseDate,
+                    PurchaseCost = asset.PurchaseCost,
+                    WarrantyStartDate = asset.WarrantyStartDate,
+                    WarrantyEndDate = asset.WarrantyEndDate,
+                    Configuration = asset.Configuration,
+                    Description = asset.Description,
+                    Location = asset.Location,
+                    Condition = asset.Condition
+                };
+
+                // =========================================
+                // 11. UPDATE ASSET
+                // =========================================
+
+                asset.AssetCode = model.AssetCode;
+                asset.AssetName = model.AssetName;
+                asset.AssetCategoryId = model.AssetCategoryId;
+                asset.Brand = model.Brand;
+                asset.Model = model.Model;
+                asset.SerialNumber = model.SerialNumber;
+                asset.VendorName = model.VendorName;
+                asset.InvoiceNumber = model.InvoiceNumber;
+                asset.PurchaseDate = model.PurchaseDate;
+                asset.PurchaseCost = model.PurchaseCost;
+                asset.WarrantyStartDate = model.WarrantyStartDate;
+                asset.WarrantyEndDate = model.WarrantyEndDate;
+                asset.Configuration = model.Configuration;
+                asset.Description = model.Description;
+                asset.Location = model.Location;
+                asset.Condition = parsedCondition;
+                asset.UpdatedDate = DateTime.Now;
+
+                // =========================================
+                // 12. BUILD CHANGE HISTORY
+                // =========================================
+
+                var changes = new List<string>();
+
+                if (oldValues.AssetCode != asset.AssetCode)
+                    changes.Add($"Asset Code: {oldValues.AssetCode} → {asset.AssetCode}");
+
+                if (oldValues.AssetName != asset.AssetName)
+                    changes.Add($"Asset Name: {oldValues.AssetName} → {asset.AssetName}");
+
+                if (oldValues.CategoryId != asset.AssetCategoryId)
+                    changes.Add($"Category: {oldValues.CategoryId} → {asset.AssetCategoryId}");
+
+                if (oldValues.Brand != asset.Brand)
+                    changes.Add($"Brand: {oldValues.Brand ?? "N/A"} → {asset.Brand ?? "N/A"}");
+
+                if (oldValues.Model != asset.Model)
+                    changes.Add($"Model: {oldValues.Model ?? "N/A"} → {asset.Model ?? "N/A"}");
+
+                if (oldValues.SerialNumber != asset.SerialNumber)
+                    changes.Add($"Serial Number: {oldValues.SerialNumber ?? "N/A"} → {asset.SerialNumber ?? "N/A"}");
+
+                if (oldValues.VendorName != asset.VendorName)
+                    changes.Add($"Vendor: {oldValues.VendorName ?? "N/A"} → {asset.VendorName ?? "N/A"}");
+
+                if (oldValues.InvoiceNumber != asset.InvoiceNumber)
+                    changes.Add($"Invoice: {oldValues.InvoiceNumber ?? "N/A"} → {asset.InvoiceNumber ?? "N/A"}");
+
+                if (oldValues.PurchaseCost != asset.PurchaseCost)
+                    changes.Add($"Cost: {oldValues.PurchaseCost?.ToString("N2") ?? "N/A"} → {asset.PurchaseCost?.ToString("N2") ?? "N/A"}");
+
+                if (oldValues.Condition != asset.Condition)
+                    changes.Add($"Condition: {oldValues.Condition} → {asset.Condition}");
+
+                if (oldValues.Location != asset.Location)
+                    changes.Add($"Location: {oldValues.Location ?? "N/A"} → {asset.Location ?? "N/A"}");
+
+                // =========================================
+                // 13. SAVE HISTORY IF CHANGES EXIST
+                // =========================================
+
+                if (changes.Any())
+                {
+                    _db.AssetHistories.Add(new AssetHistory
+                    {
+                        AssetId = asset.Id,
+                        Action = "Asset Updated",
+                        OldValue = string.Join(" | ", changes),
+                        NewValue = asset.AssetName,
+                        Remarks = "Asset details updated from Asset Master.",
+                        PerformedBy = currentUserId.Value,
+                        PerformedDate = DateTime.Now
+                    });
+                }
+
+                // =========================================
+                // 14. SAVE
+                // =========================================
+
+                await _db.SaveChangesAsync();
+
+                TempData["Success"] =
+                    $"Asset '{asset.AssetName}' updated successfully.";
+
+                return RedirectToAction("Assets");
+            }
+            catch (DbUpdateException ex)
+            {
+                Console.WriteLine("=================================");
+                Console.WriteLine("EDIT ASSET DATABASE ERROR");
+                Console.WriteLine(ex.Message);
+                Console.WriteLine(ex.InnerException?.Message);
+                Console.WriteLine("=================================");
+
+                TempData["Error"] =
+                    $"Database error: {ex.InnerException?.Message ?? ex.Message}";
+
+                return RedirectToAction("Assets");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("=================================");
+                Console.WriteLine("EDIT ASSET ERROR");
+                Console.WriteLine(ex.Message);
+                Console.WriteLine(ex.StackTrace);
+                Console.WriteLine("=================================");
+
+                TempData["Error"] =
+                    $"Error updating asset: {ex.Message}";
+
+                return RedirectToAction("Assets");
+            }
+        }
+        [AuthorizeAdmin]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteAsset(int id)
+        {
+            var currentUserId = HttpContext.Session.GetInt32("UserId");
+
+            if (currentUserId == null)
+            {
+                TempData["Error"] = "Your session has expired. Please login again.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            var asset = await _db.Assets
+                .FirstOrDefaultAsync(a =>
+                    a.Id == id &&
+                    !a.IsDeleted);
+
+            if (asset == null)
+            {
+                TempData["Error"] = "Asset not found.";
+                return RedirectToAction("Assets");
+            }
+
+            // -----------------------------------------
+            // IMPORTANT
+            // Don't allow deleting currently assigned asset
+            // -----------------------------------------
+
+            if (asset.CurrentEmployeeId != null ||
+                asset.Status == AssetStatus.Assigned)
+            {
+                TempData["Error"] =
+                    "This asset is currently assigned to an employee. " +
+                    "Please return the asset before deactivating it.";
+
+                return RedirectToAction("Assets");
+            }
+
+            // -----------------------------------------
+            // Soft Delete
+            // -----------------------------------------
+
+            asset.IsActive = false;
+            asset.IsDeleted = true;
+            asset.UpdatedDate = DateTime.Now;
+
+            // -----------------------------------------
+            // History
+            // -----------------------------------------
+
+            _db.AssetHistories.Add(new AssetHistory
+            {
+                AssetId = asset.Id,
+                Action = "Asset Deactivated",
+                OldValue = asset.AssetName,
+                NewValue = null,
+                Remarks = "Asset marked inactive from Asset Master.",
+                PerformedBy = currentUserId.Value,
+                PerformedDate = DateTime.Now
+            });
+
+            await _db.SaveChangesAsync();
+
+            TempData["Success"] =
+                $"Asset '{asset.AssetName}' deactivated successfully.";
+
+            return RedirectToAction("Assets");
+        }
+
+        // ================= ASSIGN / RETURN / HISTORY =================
+        [AuthorizeAdmin]
+        [HttpGet]
+        public async Task<IActionResult> AssignAsset(int id)
+        {
+            var asset = await _db.Assets
+                .FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted);
+
+            if (asset == null)
+            {
+                TempData["Error"] = "Asset not found.";
+                return RedirectToAction("Assets");
+            }
+
+            // Provide list of active employees for selection
+            ViewBag.Employees = await _db.Employees
+                .Where(e => e.IsActive && !e.IsDeleted)
+                .OrderBy(e => e.FirstName)
+                .ThenBy(e => e.LastName)
+                .ToListAsync();
+
+            return View(asset);
+        }
+
+        [AuthorizeAdmin]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AssignAsset(int assetId, int employeeId, string? handoverRemarks)
+        {
+            var currentUserId = HttpContext.Session.GetInt32("UserId");
+
+            if (currentUserId == null)
+            {
+                TempData["Error"] = "Your session has expired. Please login again.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            var asset = await _db.Assets.FirstOrDefaultAsync(a => a.Id == assetId && !a.IsDeleted);
+
+            if (asset == null)
+            {
+                TempData["Error"] = "Asset not found.";
+                return RedirectToAction("Assets");
+            }
+
+            var employee = await _db.Employees.FirstOrDefaultAsync(e => e.Id == employeeId && e.IsActive && !e.IsDeleted);
+
+            if (employee == null)
+            {
+                TempData["Error"] = "Selected employee not found or inactive.";
+                return RedirectToAction("Assets");
+            }
+
+            // Prevent assigning if already assigned
+            if (asset.CurrentEmployeeId != null || asset.Status == AssetStatus.Assigned)
+            {
+                TempData["Error"] = "This asset is already assigned. Please return it before assigning to another employee.";
+                return RedirectToAction("Assets");
+            }
+
+            // Mark any previous assignments as not current (defensive)
+            var previousAssignments = await _db.AssetAssignments
+                .Where(asg => asg.AssetId == assetId && asg.IsCurrent)
+                .ToListAsync();
+
+            foreach (var p in previousAssignments)
+            {
+                p.IsCurrent = false;
+            }
+
+            var assignment = new AssetAssignment
+            {
+                AssetId = assetId,
+                EmployeeId = employeeId,
+                AssignedDate = DateTime.Now,
+                AssignedBy = currentUserId.Value,
+                IsCurrent = true,
+                ConditionAtAssignment = asset.Condition,
+                HandoverRemarks = handoverRemarks
+            };
+
+            _db.AssetAssignments.Add(assignment);
+
+            // Update asset
+            asset.CurrentEmployeeId = employeeId;
+            asset.Status = AssetStatus.Assigned;
+            asset.UpdatedDate = DateTime.Now;
+
+            // History
+            _db.AssetHistories.Add(new AssetHistory
+            {
+                AssetId = asset.Id,
+                Action = "Assigned",
+                OldValue = asset.AssetName,
+                NewValue = employee.FirstName + " " + employee.LastName,
+                Remarks = handoverRemarks ?? "",
+                PerformedBy = currentUserId.Value,
+                PerformedDate = DateTime.Now
+            });
+
+            await _db.SaveChangesAsync();
+
+            TempData["Success"] = $"Asset '{asset.AssetName}' assigned to {employee.FirstName} {employee.LastName}.";
+            return RedirectToAction("Assets");
+        }
+
+        [AuthorizeAdmin]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ReturnAsset(int assignmentId, string? returnRemarks)
+        {
+            var currentUserId = HttpContext.Session.GetInt32("UserId");
+
+            if (currentUserId == null)
+            {
+                TempData["Error"] = "Your session has expired. Please login again.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            var assignment = await _db.AssetAssignments
+                .Include(a => a.Asset)
+                .Include(a => a.Employee)
+                .FirstOrDefaultAsync(a => a.Id == assignmentId && a.IsCurrent);
+
+            if (assignment == null)
+            {
+                TempData["Error"] = "Active assignment not found.";
+                return RedirectToAction("Assets");
+            }
+
+            assignment.ReturnedDate = DateTime.Now;
+            assignment.ReturnedBy = currentUserId.Value;
+            assignment.IsCurrent = false;
+            assignment.ReturnRemarks = returnRemarks;
+            assignment.ConditionAtReturn = assignment.ConditionAtReturn ?? assignment.ConditionAtAssignment;
+
+            // Update asset
+            var asset = assignment.Asset!;
+            asset.CurrentEmployeeId = null;
+            asset.Status = AssetStatus.Available;
+            asset.UpdatedDate = DateTime.Now;
+
+            // History
+            _db.AssetHistories.Add(new AssetHistory
+            {
+                AssetId = asset.Id,
+                Action = "Returned",
+                OldValue = assignment.Employee?.FirstName + " " + assignment.Employee?.LastName,
+                NewValue = asset.AssetName,
+                Remarks = returnRemarks ?? "",
+                PerformedBy = currentUserId.Value,
+                PerformedDate = DateTime.Now
+            });
+
+            await _db.SaveChangesAsync();
+
+            TempData["Success"] = $"Asset '{asset.AssetName}' returned successfully.";
+            return RedirectToAction("Assets");
+        }
+        [AuthorizeAdmin]
+        [HttpGet]
+        public async Task<IActionResult> GetAssetHistory(int assetId)
+        {
+            var asset = await _db.Assets
+                .AsNoTracking()
+                .FirstOrDefaultAsync(a =>
+                    a.Id == assetId &&
+                    !a.IsDeleted);
+
+            if (asset == null)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = "Asset not found."
+                });
+            }
+
+            var history = await (
+                from h in _db.AssetHistories.AsNoTracking()
+
+                join u in _db.Users.AsNoTracking()
+                    on h.PerformedBy equals u.Id into userGroup
+
+                from u in userGroup.DefaultIfEmpty()
+
+                where h.AssetId == assetId
+
+                orderby h.PerformedDate descending
+
+                select new
+                {
+                    id = h.Id,
+
+                    performedDate =
+                        h.PerformedDate.ToString("yyyy-MM-dd HH:mm"),
+
+                    action = h.Action,
+
+                    oldValue = h.OldValue,
+
+                    newValue = h.NewValue,
+
+                    remarks = h.Remarks,
+
+                    performedBy = u != null
+                        ? u.Name
+                        : "System"
+                }
+            ).ToListAsync();
+
+            return Json(new
+            {
+                success = true,
+
+                assetName = asset.AssetName,
+                assetCode = asset.AssetCode,
+
+                history
+            });
+        }
+
+        [AuthorizeAdmin]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ToggleAssetActive(int id)
+        {
+            var currentUserId = HttpContext.Session.GetInt32("UserId");
+            if (currentUserId == null)
+            {
+                TempData["Error"] = "Your session has expired. Please login again.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            var asset = await _db.Assets.FirstOrDefaultAsync(a => a.Id == id);
+            if (asset == null)
+            {
+                TempData["Error"] = "Asset not found.";
+                return RedirectToAction("Assets");
+            }
+
+            asset.IsActive = !asset.IsActive;
+            asset.IsDeleted = !asset.IsActive;
+            asset.UpdatedDate = DateTime.Now;
+
+            _db.AssetHistories.Add(new AssetHistory
+            {
+                AssetId = asset.Id,
+                Action = asset.IsActive ? "Reactivated" : "Deactivated",
+                OldValue = asset.AssetName,
+                NewValue = asset.IsActive ? "Active" : "Inactive",
+                Remarks = asset.IsActive ? "Asset reactivated by admin." : "Asset deactivated by admin.",
+                PerformedBy = currentUserId.Value,
+                PerformedDate = DateTime.Now
+            });
+
+            await _db.SaveChangesAsync();
+
+            TempData["Success"] = asset.IsActive ? "Asset reactivated." : "Asset deactivated.";
+            return RedirectToAction("Assets");
+        }
+
+        [AuthorizeAdmin]
+        [HttpGet]
+        public async Task<IActionResult> EmployeeProfile(int id)
+        {
+            // Debug: log session values to troubleshoot unexpected redirects
+            var sid = HttpContext.Session.GetInt32("UserId");
+            var srole = HttpContext.Session.GetInt32("RoleId");
+            var sname = HttpContext.Session.GetString("UserName");
+            Console.WriteLine($"ADMIN EMP PROFILE REQUEST: Session UserId={sid}, RoleId={srole}, UserName={sname}");
+
+            var employee = await _db.Employees
+                .Include(e => e.User)
+                    .ThenInclude(u => u!.Role)
+                .Include(e => e.ReportingToUser)
+                .Include(e => e.Educations)
+                .FirstOrDefaultAsync(e => e.Id == id && !e.IsDeleted);
+
+            if (employee == null)
+            {
+                TempData["Error"] = "Employee not found.";
+                return RedirectToAction("Employees");
+            }
+
+            var documents = await _db.EmployeeDocuments
+                .Where(d => d.EmployeeId == employee.Id)
+                .OrderBy(d => d.DocumentType)
+                .ToListAsync();
+
+            ViewBag.Documents = documents;
+
+            var assignedAssets = await _db.AssetAssignments
+                .Where(a => a.EmployeeId == id && a.IsCurrent)
+                .Include(a => a.Asset)
+                .ToListAsync();
+
+            ViewBag.AssignedAssets = assignedAssets;
+
+            // available assets for admin to assign
+            var availableAssets = await _db.Assets
+                .Where(a => !a.IsDeleted && a.CurrentEmployeeId == null)
+                .OrderBy(a => a.AssetName)
+                .ToListAsync();
+
+            ViewBag.AvailableAssets = availableAssets;
+
+            return View("~/Views/Employee/Profile.cshtml", employee);
         }
 
         [AuthorizeAdmin]

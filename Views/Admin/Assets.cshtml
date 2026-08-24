@@ -274,6 +274,242 @@
     </button>
 </div>
 
+<!-- EDIT ASSET MODAL (reuse Add modal structure but for editing) -->
+<div class="modal fade" id="editAssetModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content asset-modal-content">
+            <form id="editAssetModalForm" asp-controller="Admin" asp-action="EditAsset" method="post">
+                @Html.AntiForgeryToken()
+
+                <div class="modal-header asset-modal-header">
+                    <h5 class="modal-title asset-modal-title">
+                        <i class="bi bi-box-seam me-2 text-primary"></i> Edit Asset
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body asset-modal-body">
+                    <input type="hidden" id="edit_Id" name="Id" />
+
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="asset-form-label">Asset Code <span class="asset-required">*</span></label>
+                            <input id="edit_AssetCode" type="text" name="AssetCode" class="form-control asset-form-control" maxlength="50" required />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="asset-form-label">Asset Name <span class="asset-required">*</span></label>
+                            <input id="edit_AssetName" type="text" name="AssetName" class="form-control asset-form-control" maxlength="200" required />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="asset-form-label">Category <span class="asset-required">*</span></label>
+                            <select id="edit_AssetCategoryId" name="AssetCategoryId" class="form-select asset-form-control" required>
+                                <option value="">-- Select Category --</option>
+                                @foreach (var category in categories)
+                                {
+                                    <option value="@category.Id">@category.Name</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="col-md-4 mt-3">
+                            <label class="asset-form-label">Brand</label>
+                            <input id="edit_Brand" type="text" name="Brand" class="form-control asset-form-control" maxlength="100" />
+                        </div>
+
+                        <div class="col-md-4 mt-3">
+                            <label class="asset-form-label">Model</label>
+                            <input id="edit_Model" type="text" name="Model" class="form-control asset-form-control" maxlength="100" />
+                        </div>
+
+                        <div class="col-md-4 mt-3">
+                            <label class="asset-form-label">Serial Number</label>
+                            <input id="edit_SerialNumber" type="text" name="SerialNumber" class="form-control asset-form-control" maxlength="150" />
+                        </div>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="asset-form-label">Condition</label>
+                            <select id="edit_Condition" name="Condition" class="form-select asset-form-control">
+                                @foreach (AssetCondition condition in Enum.GetValues<AssetCondition>())
+                                {
+                                    <option value="@condition">@condition</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="asset-form-label">Location</label>
+                            <input id="edit_Location" type="text" name="Location" class="form-control asset-form-control" />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="asset-form-label">Configuration</label>
+                            <input id="edit_Configuration" type="text" name="Configuration" class="form-control asset-form-control" />
+                        </div>
+
+                        <div class="col-12 mt-3">
+                            <label class="asset-form-label">Description</label>
+                            <textarea id="edit_Description" name="Description" class="form-control asset-form-control" rows="3"></textarea>
+                        </div>
+
+                    <hr class="my-4" />
+                    <!-- PURCHASE & WARRANTY fields -->
+                    <div class="row g-3 mt-2">
+                        <div class="col-md-4">
+                            <label class="asset-form-label">Vendor Name</label>
+                            <input id="edit_VendorName" name="VendorName" type="text" class="form-control asset-form-control" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="asset-form-label">Invoice Number</label>
+                            <input id="edit_InvoiceNumber" name="InvoiceNumber" type="text" class="form-control asset-form-control" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="asset-form-label">Purchase Date</label>
+                            <input id="edit_PurchaseDate" name="PurchaseDate" type="date" class="form-control asset-form-control" />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="asset-form-label">Purchase Cost</label>
+                            <input id="edit_PurchaseCost" name="PurchaseCost" type="number" step="0.01" class="form-control asset-form-control" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="asset-form-label">Warranty Start</label>
+                            <input id="edit_WarrantyStartDate" name="WarrantyStartDate" type="date" class="form-control asset-form-control" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="asset-form-label">Warranty End</label>
+                            <input id="edit_WarrantyEndDate" name="WarrantyEndDate" type="date" class="form-control asset-form-control" />
+                        </div>
+                    </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer asset-modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn asset-primary-btn">Update Asset</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<!-- ========================================================= -->
+<!-- ASSET HISTORY MODAL -->
+<!-- ========================================================= -->
+
+<div class="modal fade"
+     id="assetHistoryModal"
+     tabindex="-1"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+
+        <div class="modal-content asset-modal-content">
+
+            <!-- HEADER -->
+            <div class="modal-header asset-modal-header">
+
+                <div>
+                    <h5 class="modal-title asset-modal-title">
+                        <i class="bi bi-clock-history me-2 text-primary"></i>
+                        Asset History
+                    </h5>
+
+                    <div class="small text-muted mt-1">
+                        <span id="historyAssetName"></span>
+                        <span class="mx-2">•</span>
+                        <strong id="historyAssetCode"></strong>
+                    </div>
+                </div>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal">
+                </button>
+
+            </div>
+
+
+            <!-- BODY -->
+            <div class="modal-body asset-modal-body">
+
+                <!-- Loading -->
+                <div id="historyLoading"
+                     class="text-center py-5">
+
+                    <div class="spinner-border text-primary"
+                         role="status">
+                    </div>
+
+                    <div class="text-muted mt-2">
+                        Loading asset history...
+                    </div>
+
+                </div>
+
+
+                <!-- Empty -->
+                <div id="historyEmpty"
+                     class="text-center py-5 d-none">
+
+                    <i class="bi bi-clock-history"
+                       style="font-size:42px;color:#cbd5e1;">
+                    </i>
+
+                    <h6 class="mt-3 text-muted">
+                        No history available
+                    </h6>
+
+                </div>
+
+
+                <!-- History Table -->
+                <div id="historyContent"
+                     class="d-none">
+
+                    <div class="table-responsive">
+
+                        <table class="table table-hover align-middle">
+
+                            <thead>
+                                <tr>
+                                    <th>When</th>
+                                    <th>Action</th>
+                                    <th>Old Value</th>
+                                    <th>New Value</th>
+                                    <th>Remarks</th>
+                                    <th>By</th>
+                                </tr>
+                            </thead>
+
+                            <tbody id="historyTableBody">
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- FOOTER -->
+            <div class="modal-footer asset-modal-footer">
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
 <div class="card asset-card mt-3">
     <div class="table-responsive">
         <table class="table table-hover mb-0 asset-table">
@@ -283,9 +519,6 @@
                     <th>Asset Code</th>
                     <th>Asset</th>
                     <th>Category</th>
-                    <th>Serial Number</th>
-                    <th>Purchase Cost</th>
-                    <th>Condition</th>
                     <th>Status</th>
                     <th>Assigned To</th>
                     <th style="width:110px;" class="text-center">Actions</th>
@@ -327,40 +560,7 @@
                                     <span class="text-muted">-</span>
                                 }
                             </td>
-                            <td>
-                                @if (!string.IsNullOrWhiteSpace(asset.SerialNumber))
-                                {
-                                    <span>@asset.SerialNumber</span>
-                                }
-                                else
-                                {
-                                    <span class="text-muted">-</span>
-                                }
-                            </td>
-                            <td>
-                                @if (asset.PurchaseCost.HasValue)
-                                {
-                                    <span>₹@asset.PurchaseCost.Value.ToString("N2")</span>
-                                }
-                                else
-                                {
-                                    <span class="text-muted">-</span>
-                                }
-                            </td>
-                            <td>
-                                @{
-                                    var conditionClass = asset.Condition switch
-                                    {
-                                        AssetCondition.New => "condition-new",
-                                        AssetCondition.Excellent => "condition-excellent",
-                                        AssetCondition.Good => "condition-good",
-                                        AssetCondition.Fair => "condition-fair",
-                                        AssetCondition.Damaged => "condition-damaged",
-                                        _ => ""
-                                    };
-                                }
-                                <span class="asset-condition-badge @conditionClass">@asset.Condition</span>
-                            </td>
+
                             <td>
                                 @{
                                     var statusClass = asset.Status switch
@@ -414,12 +614,100 @@
                                 }
                             </td>
                             <td class="text-center">
-                                <button type="button" class="btn btn-sm btn-outline-primary asset-action-btn" title="View Asset">
-                                    <i class="bi bi-eye"></i>
-                                </button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary asset-action-btn" title="Edit Asset">
-                                    <i class="bi bi-pencil"></i>
-                                </button>
+                                <!-- Visible buttons on md+ screens -->
+                                <div class="d-none d-md-flex gap-1 flex-nowrap align-items-center justify-content-center">
+                                    <button type="button" class="btn btn-sm btn-outline-primary asset-action-btn view-asset-btn" data-bs-toggle="modal" data-bs-target="#viewAssetModal-@asset.Id" data-bs-toggle="tooltip" data-bs-placement="top" title="View Asset">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+
+                                    @if (asset.CurrentEmployeeId == null && asset.Status != AssetStatus.Assigned)
+                                    {
+                                        <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#assignAssetModal-@asset.Id" data-bs-toggle="tooltip" data-bs-placement="top" title="Assign Asset">
+                                            <i class="bi bi-person-plus"></i>
+                                        </button>
+                                    }
+
+                                    <button type="button" class="btn btn-sm btn-outline-primary edit-asset-btn" data-bs-placement="top" title="Edit Asset"
+                                            data-asset-id="@asset.Id"
+                                            data-asset-code="@asset.AssetCode"
+                                            data-asset-name="@asset.AssetName"
+                                            data-asset-categoryid="@asset.AssetCategoryId"
+                                            data-asset-brand="@asset.Brand"
+                                            data-asset-model="@asset.Model"
+                                            data-asset-serial="@asset.SerialNumber"
+                                            data-asset-vendor="@asset.VendorName"
+                                            data-asset-invoice="@asset.InvoiceNumber"
+                                            data-asset-purchasedate="@(asset.PurchaseDate?.ToString("yyyy-MM-dd") ?? "")"
+                                            data-asset-purchasecost="@(asset.PurchaseCost?.ToString() ?? "")"
+                                            data-asset-warrantystart="@(asset.WarrantyStartDate?.ToString("yyyy-MM-dd") ?? "")"
+                                            data-asset-warrantyend="@(asset.WarrantyEndDate?.ToString("yyyy-MM-dd") ?? "")"
+                                            data-asset-configuration="@asset.Configuration"
+                                            data-asset-description="@asset.Description"
+                                            data-asset-location="@asset.Location"
+                                            data-asset-condition="@((int)asset.Condition)"
+                                            >
+                                        <i class="bi bi-pencil-square"></i>
+                                    </button>
+
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-secondary asset-action-btn history-asset-btn"
+                                            data-asset-id="@asset.Id"
+                                            data-asset-code="@asset.AssetCode"
+                                            data-asset-name="@asset.AssetName"
+                                            data-bs-toggle="tooltip"
+                                            data-bs-placement="top"
+                                            title="View History">
+                                        <i class="bi bi-clock-history"></i>
+                                    </button>
+
+                                    <form asp-controller="Admin" asp-action="DeleteAsset" method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to deactivate this asset?');">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@asset.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="Deactivate Asset">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+
+                                <!-- Dropdown for small screens -->
+                                <div class="d-md-none">
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="assetActionsDropdown-@asset.Id" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="bi bi-three-dots"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="assetActionsDropdown-@asset.Id">
+                                            <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#viewAssetModal-@asset.Id">View Asset</a></li>
+                                            @if (asset.CurrentEmployeeId == null && asset.Status != AssetStatus.Assigned)
+                                            {
+                                                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#assignAssetModal-@asset.Id">Assign Asset</a></li>
+                                            }
+                                            <li><a class="dropdown-item" asp-controller="Admin" asp-action="EditAsset" asp-route-id="@asset.Id">Edit Asset</a></li>
+                                            <li>
+                                                <a href="#"
+                                                   class="dropdown-item history-asset-btn"
+                                                   data-asset-id="@asset.Id"
+                                                   data-asset-code="@asset.AssetCode"
+                                                   data-asset-name="@asset.AssetName">
+                                                    <i class="bi bi-clock-history me-2"></i>
+                                                    View History
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <form asp-controller="Admin" asp-action="DeleteAsset" method="post" onsubmit="return confirm('Are you sure you want to deactivate this asset?');">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="id" value="@asset.Id" />
+                                                    <button type="submit" class="dropdown-item text-danger">Deactivate Asset</button>
+                                                </form>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                @* Include assign modal partial for this asset only if asset is available *@
+                                @if (asset.CurrentEmployeeId == null && asset.Status != AssetStatus.Assigned)
+                                {
+                                    @await Html.PartialAsync("_AssignAssetModal", asset)
+                                }
                             </td>
                         </tr>
                         rowNumber++;
@@ -439,6 +727,98 @@
         </table>
     </div>
 </div>
+
+@* Render view modals for each asset outside the table to ensure valid HTML and proper Bootstrap behavior *@
+@if (Model != null && Model.Any())
+{
+    foreach (var asset in Model)
+    {
+        @await Html.PartialAsync("_ViewAssetModal", asset)
+    }
+}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Attach click listeners to view buttons and log actions. Also provide JS fallback to show modal.
+        document.querySelectorAll('.view-asset-btn').forEach(function (btn) {
+            btn.addEventListener('click', function (e) {
+                try {
+                    var target = btn.getAttribute('data-bs-target');
+                    console.log('View button clicked, target=', target);
+
+                    // Try to use Bootstrap's JS API to show modal (fallback if data attributes not working)
+                    if (typeof bootstrap !== 'undefined' && target) {
+                        var modalEl = document.querySelector(target);
+                        if (modalEl) {
+                            var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                            modal.show();
+                        } else {
+                            console.warn('Modal element not found for', target);
+                        }
+                    }
+                } catch (ex) {
+                    console.error('Error opening asset view modal', ex);
+                }
+            });
+        });
+    });
+</script>
+
+<script>
+    // Initialize Bootstrap tooltips globally
+    document.addEventListener('DOMContentLoaded', function () {
+        if (typeof bootstrap !== 'undefined' && bootstrap?.Tooltip) {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        }
+    });
+</script>
+    <script>
+        // Edit modal population
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.edit-asset-btn').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var d = btn.dataset || {};
+                    // helper to set value if element exists
+                    var set = function (id, value) {
+                        var el = document.getElementById(id);
+                        if (el) el.value = value || '';
+                    };
+
+                    set('edit_Id', d.assetId);
+                    set('edit_AssetCode', d.assetCode);
+                    set('edit_AssetName', d.assetName);
+                    set('edit_AssetCategoryId', d.assetCategoryid);
+                    set('edit_Brand', d.assetBrand);
+                    set('edit_Model', d.assetModel);
+                    set('edit_SerialNumber', d.assetSerial);
+                    set('edit_VendorName', d.assetVendor);
+                    set('edit_InvoiceNumber', d.assetInvoice);
+                    set('edit_PurchaseDate', d.assetPurchasedate);
+                    set('edit_PurchaseCost', d.assetPurchasecost);
+                    set('edit_WarrantyStartDate', d.assetWarrantystart);
+                    set('edit_WarrantyEndDate', d.assetWarrantyend);
+                    set('edit_Configuration', d.assetConfiguration);
+                    set('edit_Description', d.assetDescription);
+                    set('edit_Location', d.assetLocation);
+
+                    if (d.assetCondition) {
+                        var condEl = document.getElementById('edit_Condition');
+                        if (condEl) condEl.value = d.assetCondition;
+                    }
+
+                    // show modal via bootstrap API
+                    var modalEl = document.getElementById('editAssetModal');
+                    if (modalEl && typeof bootstrap !== 'undefined') {
+                        var m = bootstrap.Modal.getOrCreateInstance(modalEl);
+                        m.show();
+                    }
+                });
+            });
+        });
+    </script>
 
 <!-- ADD ASSET MODAL -->
 <div class="modal fade" id="addAssetModal" tabindex="-1" aria-hidden="true">
@@ -611,4 +991,190 @@
             });
         }
     });
+
+         document.addEventListener('DOMContentLoaded', function () {
+
+            const historyButtons =
+                document.querySelectorAll('.history-asset-btn');
+
+            const historyModalElement =
+                document.getElementById('assetHistoryModal');
+
+            const historyModal =
+                bootstrap.Modal.getOrCreateInstance(historyModalElement);
+
+
+            historyButtons.forEach(function (button) {
+
+                button.addEventListener('click', async function (e) {
+
+                    e.preventDefault();
+
+                    const assetId =
+                        button.dataset.assetId;
+
+                    const assetName =
+                        button.dataset.assetName || '';
+
+                    const assetCode =
+                        button.dataset.assetCode || '';
+
+
+                    // Set header
+                    document.getElementById('historyAssetName').textContent =
+                        assetName;
+
+                    document.getElementById('historyAssetCode').textContent =
+                        assetCode;
+
+
+                    // Reset UI
+                    document.getElementById('historyLoading')
+                        .classList.remove('d-none');
+
+                    document.getElementById('historyEmpty')
+                        .classList.add('d-none');
+
+                    document.getElementById('historyContent')
+                        .classList.add('d-none');
+
+                    document.getElementById('historyTableBody')
+                        .innerHTML = '';
+
+
+                    // Open modal immediately
+                    historyModal.show();
+
+
+                    try {
+
+                        const response =
+                            await fetch(
+                                `/Admin/GetAssetHistory?assetId=${assetId}`
+                            );
+
+
+                        if (!response.ok) {
+
+                            throw new Error(
+                                'Unable to load asset history.'
+                            );
+
+                        }
+
+
+                        const result =
+                            await response.json();
+
+
+                        document.getElementById('historyLoading')
+                            .classList.add('d-none');
+
+
+                        if (!result.success ||
+                            !result.history ||
+                            result.history.length === 0) {
+
+                            document.getElementById('historyEmpty')
+                                .classList.remove('d-none');
+
+                            return;
+                        }
+
+
+                        const tbody =
+                            document.getElementById('historyTableBody');
+
+
+                        result.history.forEach(function (item) {
+
+                            const row =
+                                document.createElement('tr');
+
+
+                            row.innerHTML = `
+
+                                <td>
+                                    <span class="history-date">
+                                        ${escapeHtml(item.performedDate || '')}
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <span class="history-action">
+                                        <i class="bi bi-clock-history"></i>
+                                        ${escapeHtml(item.action || '')}
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <div class="history-value">
+                                        ${escapeHtml(item.oldValue || '-')}
+                                    </div>
+                                </td>
+
+                                <td>
+                                    <div class="history-value">
+                                        ${escapeHtml(item.newValue || '-')}
+                                    </div>
+                                </td>
+
+                                <td>
+                                    <div class="history-remarks">
+                                        ${escapeHtml(item.remarks || '-')}
+                                    </div>
+                                </td>
+
+                                <td>
+                                    <span class="history-user">
+                                        ${escapeHtml(item.performedBy || '-')}
+                                    </span>
+                                </td>
+
+                            `;
+
+                            tbody.appendChild(row);
+
+                        });
+
+
+                        document.getElementById('historyContent')
+                            .classList.remove('d-none');
+
+
+                    }
+                    catch (error) {
+
+                        console.error(
+                            'Asset history error:',
+                            error
+                        );
+
+                        document.getElementById('historyLoading')
+                            .classList.add('d-none');
+
+                        document.getElementById('historyEmpty')
+                            .classList.remove('d-none');
+
+                    }
+
+                });
+
+            });
+
+
+            // Prevent HTML injection
+            function escapeHtml(value) {
+
+                const div =
+                    document.createElement('div');
+
+                div.textContent =
+                    value ?? '';
+
+                return div.innerHTML;
+
+            }
+
+        });
 </script>

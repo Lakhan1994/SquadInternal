@@ -14,6 +14,63 @@ html, body {
     justify-content: center;
 }
 
+.history-table {
+    width: 100%;
+}
+
+    .history-table thead th {
+        background: #f8f9fa;
+        color: #2c3e50;
+        font-size: .78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .4px;
+        padding: 13px 12px;
+        white-space: nowrap;
+    }
+
+    .history-table tbody td {
+        padding: 13px 12px;
+        vertical-align: middle;
+        border-bottom: 1px solid #f0f2f5;
+    }
+
+.history-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 20px;
+    background: #eef0ff;
+    color: #4d5bd4;
+    font-size: .76rem;
+    font-weight: 600;
+}
+
+.history-date {
+    font-size: .80rem;
+    color: #6c757d;
+    white-space: nowrap;
+}
+
+.history-value {
+    max-width: 180px;
+    word-break: break-word;
+    font-size: .84rem;
+}
+
+.history-remarks {
+    max-width: 250px;
+    font-size: .82rem;
+    color: #6c757d;
+}
+
+.history-user {
+    font-size: .82rem;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
 /* ================= PAGE HEADER ================= */
 
 .page-accent {
@@ -104,6 +161,45 @@ html, body {
     padding: 24px;
 }
 
+/* ======== Make sidebar fixed and content scrollable independently ======== */
+/* Prevent the whole page from scrolling and keep sidebar stationary */
+.admin-shell {
+    height: 100vh; /* full viewport height */
+    overflow: hidden; /* prevent body scroll; content will scroll */
+}
+
+.sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    height: 100vh;
+    overflow-y: auto; /* allow sidebar to scroll if menu long */
+    z-index: 1000;
+}
+
+.content {
+    margin-left: 260px; /* same as .sidebar width */
+    height: 100vh;
+    overflow-y: auto; /* content scroll only */
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Small screens: make sidebar collapsible (stack above content) */
+@media (max-width: 991.98px) {
+    .sidebar {
+        position: relative;
+        width: 100%;
+        height: auto;
+    }
+
+    .content {
+        margin-left: 0;
+        height: auto;
+        overflow: visible;
+    }
+}
+
 /* ================= MENU ================= */
 
 .menu-link {
@@ -157,44 +253,6 @@ html, body {
 }
 
 /* ================= COMPACT CALENDAR ================= */
-
-.calendar-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 2px;
-    text-align: center;
-}
-
-.calendar-header {
-    font-size: 8px;
-    font-weight: 400;
-    color: #555;
-}
-
-.calendar-day {
-    padding: 5px;
-    border-radius: 6px;
-    font-size: 8px;
-    cursor: pointer;
-    transition: 0.2s;
-}
-
-    .calendar-day:hover {
-        background-color: #1e4f9c;
-        color: white;
-    }
-
-    .calendar-day.today {
-        background-color: #0d6efd;
-        color: white;
-        font-weight: bold;
-    }
-
-    .calendar-day.holiday {
-        background-color: #ff9800;
-        color: white;
-        font-weight: 400;
-    }
 
 /* ================= BOOTSTRAP MODAL FIX ================= */
 
@@ -287,6 +345,7 @@ html, body {
     font-size: 14px;
     font-weight: 600;
     color: #555;
+    padding: 6px;
 }
 
 .calendar-day {
@@ -294,30 +353,92 @@ html, body {
     border-radius: 10px;
     font-size: 16px;
     cursor: pointer;
-    transition: 0.2s;
+    transition: all 0.2s ease;
+    background: #f8f9fa;
+    color: #333;
+    border: 1px solid transparent;
 }
 
     .calendar-day:hover {
-        transform: scale(1.08);
+        transform: scale(1.05);
     }
+
+    /* ================= TODAY ================= */
 
     .calendar-day.today {
         background: #1e88e5;
         color: white;
-        font-weight: bold;
+        font-weight: 700;
+        border-color: #1565c0;
     }
+
+    /* ================= HOLIDAY ================= */
 
     .calendar-day.holiday {
-        background: #ffb74d;
-        color: white;
-        font-weight: 600;
+        background: #ffe0e0;
+        color: #c62828;
+        border: 1px solid #ef9a9a;
+        font-weight: 700;
     }
 
+    /* ================= APPROVED LEAVE ================= */
+
     .calendar-day.leave {
-        background: orange;
-        color: white;
-        font-weight: 600;
+        background: #e3f2fd;
+        color: #1565c0;
+        border: 1px solid #90caf9;
+        font-weight: 700;
     }
+
+    /* ================= HOLIDAY + LEAVE ================= */
+
+    .calendar-day.holiday.leave {
+        background: linear-gradient( 135deg, #ffe0e0 0%, #ffe0e0 50%, #e3f2fd 50%, #e3f2fd 100% );
+        color: #333;
+        border: 1px solid #90a4ae;
+        font-weight: 700;
+    }
+
+.calendar-legend {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: #6c757d;
+}
+
+.calendar-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.calendar-legend-color {
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+/* Holiday */
+.holiday-legend {
+    background: #ffe0e0;
+    border: 1px solid #ef9a9a;
+}
+
+/* Approved Leave */
+.leave-legend {
+    background: #e3f2fd;
+    border: 1px solid #90caf9;
+}
+
+/* Today */
+.today-legend {
+    background: #1e88e5;
+    border: 1px solid #1565c0;
+}
 
 .nav-tabs .nav-link {
     background-color: #e8f4ff;
