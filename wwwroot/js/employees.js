@@ -1281,18 +1281,31 @@ if (window._employeesJsInitialized) {
     };
 
     window.uploadEmployeeDocument = function () {
+
         const body = document.getElementById('editEmployeeDocumentsBody');
+
         if (!body) return;
 
-        const employeeId = body.querySelector('#docEmployeeId')?.value;
-        const documentType = body.querySelector('#docType')?.value;
-        const documentTypeOther = body.querySelector('#docTypeOther')?.value.trim() || '';
-        const fileInput = body.querySelector('#docFile');
-        const file = fileInput?.files?.[0];
-        const uploadBtn = body.querySelector('#docUploadBtn');
+        const employeeId =
+            body.querySelector('#docEmployeeId')?.value;
+
+        const documentType =
+            body.querySelector('#docType')?.value;
+
+        const documentTypeOther =
+            body.querySelector('#docTypeOther')?.value.trim() || '';
+
+        const fileInput =
+            body.querySelector('#docFile');
+
+        const file =
+            fileInput?.files?.[0];
+
+        const uploadBtn =
+            body.querySelector('#docUploadBtn');
 
         if (!employeeId) {
-            alert('No employee selected. Please refresh and try again.');
+            alert('No employee selected.');
             return;
         }
 
@@ -1307,23 +1320,23 @@ if (window._employeesJsInitialized) {
         }
 
         if (!file) {
-            alert('Please select a file to upload.');
+            alert('Please select a file.');
             return;
         }
 
         const formData = new FormData();
+
         formData.append('employeeId', employeeId);
         formData.append('documentType', documentType);
         formData.append('documentTypeOther', documentTypeOther);
         formData.append('file', file);
 
-        const token = body.querySelector('input[name="__RequestVerificationToken"]')?.value;
-
-        const originalText = uploadBtn ? uploadBtn.innerHTML : '';
-        if (uploadBtn) {
-            uploadBtn.disabled = true;
-            uploadBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
-        }
+        // IMPORTANT:
+        // Get token ONLY from the main Edit Employee form
+        const token =
+            document.querySelector(
+                '#editEmployeeForm input[name="__RequestVerificationToken"]'
+            )?.value;
 
         fetch('/Admin/UploadEmployeeDocument', {
             method: 'POST',
@@ -1333,50 +1346,82 @@ if (window._employeesJsInitialized) {
             },
             body: formData
         })
-            .then(function (response) { return response.json(); })
-            .then(function (result) {
+            .then(response => response.json())
+            .then(result => {
+
                 if (result && result.success) {
-                    showToast(result.message || 'Document uploaded successfully', 'success');
+
+                    showToast(
+                        result.message || 'Document uploaded successfully',
+                        'success'
+                    );
+
                     loadEmployeeDocuments(employeeId);
+
                 } else {
-                    alert(result?.message || 'Failed to upload document.');
+
+                    alert(
+                        result?.message ||
+                        'Failed to upload document.'
+                    );
                 }
             })
-            .catch(function () {
+            .catch(error => {
+
+                console.error('Document upload error:', error);
+
                 alert('Failed to upload document.');
-            })
-            .finally(function () {
-                if (uploadBtn) {
-                    uploadBtn.disabled = false;
-                    uploadBtn.innerHTML = originalText;
-                }
             });
     };
 
     window.deleteEmployeeDocument = function (id, employeeId) {
-        if (!confirm('Are you sure you want to delete this document?')) return;
 
-        const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+        if (!confirm('Are you sure you want to delete this document?')) {
+            return;
+        }
+
+        const token =
+            document.querySelector(
+                '#editEmployeeForm input[name="__RequestVerificationToken"]'
+            )?.value;
 
         fetch('/Admin/DeleteEmployeeDocument', {
             method: 'POST',
+
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'RequestVerificationToken': token || '',
                 'X-Requested-With': 'XMLHttpRequest'
             },
-            body: 'id=' + encodeURIComponent(id) + '&employeeId=' + encodeURIComponent(employeeId)
+
+            body:
+                'id=' + encodeURIComponent(id) +
+                '&employeeId=' + encodeURIComponent(employeeId)
         })
-            .then(function (response) { return response.json(); })
-            .then(function (result) {
+            .then(response => response.json())
+            .then(result => {
+
                 if (result && result.success) {
-                    showToast(result.message || 'Document deleted successfully', 'success');
+
+                    showToast(
+                        result.message || 'Document deleted successfully',
+                        'success'
+                    );
+
                     loadEmployeeDocuments(employeeId);
+
                 } else {
-                    alert(result?.message || 'Failed to delete document.');
+
+                    alert(
+                        result?.message ||
+                        'Failed to delete document.'
+                    );
                 }
             })
-            .catch(function () {
+            .catch(error => {
+
+                console.error('Document delete error:', error);
+
                 alert('Failed to delete document.');
             });
     };
