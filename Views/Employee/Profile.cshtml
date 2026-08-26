@@ -116,11 +116,7 @@
                                         <input type="hidden" name="assignmentId" value="@a.Id" />
                                         <button type="submit" class="btn btn-sm btn-outline-primary">Return</button>
                                     </form>
-                                    <form asp-action="DeleteAsset" asp-controller="Admin" method="post" onsubmit="return confirm('Unassign and deactivate this asset?');" class="d-inline ms-1">
-                                        @Html.AntiForgeryToken()
-                                        <input type="hidden" name="id" value="@a.AssetId" />
-                                        <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
-                                    </form>
+                                   
                                 }
                                 else
                                 {

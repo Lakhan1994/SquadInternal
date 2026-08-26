@@ -1,7 +1,6 @@
 ﻿@using Microsoft.AspNetCore.Http
 @{
     var roleId = Context.Session.GetInt32("RoleId");
-
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
 }
@@ -10,7 +9,7 @@
 <html>
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
     <title>@ViewData["Title"] - SquadInternal</title>
 
     <!-- CSS -->
@@ -19,19 +18,26 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
 
-    @RenderSection("Scripts", required: false)
+    @RenderSection("Styles", required: false)
 </head>
 
 <body>
 
     <div class="admin-shell">
 
-        <!-- LEFT SIDEBAR -->
-        <aside class="sidebar">
+        <!-- SIDEBAR TOGGLE BUTTON -->
+        <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle Menu">
+            <i class="bi bi-list"></i>
+        </button>
 
+        <!-- SIDEBAR OVERLAY (for mobile) -->
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <!-- LEFT SIDEBAR -->
+        <aside class="sidebar" id="sidebar">
             <div class="logo-box">
                 <div style="text-align:center; width:100%; margin-bottom:30px;">
-                    <img src="~/images/login-banner.png" style="width:210px;" />
+                    <img src="~/images/login-banner.png" style="width:210px; max-width:100%;" alt="SquadInternal Logo" />
                 </div>
             </div>
 
@@ -39,22 +45,34 @@
                 var userId = Context.Session.GetInt32("UserId");
                 var userName = Context.Session.GetString("UserName") ?? "User";
                 string initials = "";
-                if (!string.IsNullOrWhiteSpace(userName)) {
+                if (!string.IsNullOrWhiteSpace(userName))
+                {
                     var parts = userName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                    if (parts.Length == 1) initials = parts[0].Length > 0 ? parts[0].Substring(0, 1).ToUpper() : "U";
-                    else initials = (parts[0].Substring(0,1) + parts[parts.Length-1].Substring(0,1)).ToUpper();
+                    if (parts.Length == 1)
+                        initials = parts[0].Length > 0 ? parts[0].Substring(0, 1).ToUpper() : "U";
+                    else
+                        initials = (parts[0].Substring(0, 1) + parts[parts.Length - 1].Substring(0, 1)).ToUpper();
                 }
             }
 
-           
+            <!-- User info on sidebar (mobile friendly) -->
+            <div class="d-flex align-items-center mb-3 pb-2 border-bottom border-white border-opacity-10 d-lg-none">
+                <div class="hero-avatar-initials bg-white text-primary d-flex align-items-center justify-content-center rounded-circle me-2" style="width:38px;height:38px;font-size:14px;font-weight:700;">
+                    @initials
+                </div>
+                <div>
+                    <div class="text-white fw-bold" style="font-size:0.9rem;">@userName</div>
+                    <div class="text-white-50" style="font-size:0.75rem;">
+                        @(roleId == 1 ? "Administrator" : "Employee")
+                    </div>
+                </div>
+            </div>
 
             <ul class="nav flex-column pt-3">
-
                 <!-- Dashboard -->
                 <li class="nav-item mb-2">
                     <a class="nav-link text-white @(currentAction == "Dashboard" ? "active-menu" : "")"
-                       asp-controller="Admin"
-                       asp-action="Dashboard">
+                       asp-controller="Admin" asp-action="Dashboard">
                         <i class="bi bi-speedometer2 me-2"></i> Dashboard
                     </a>
                 </li>
@@ -66,40 +84,35 @@
                 {
                     <li class="nav-item mb-1">
                         <a class="nav-link text-white @(currentAction == "Employees" ? "active-menu" : "")"
-                           asp-controller="Admin"
-                           asp-action="Employees">
+                           asp-controller="Admin" asp-action="Employees">
                             <i class="bi bi-people me-2"></i> Employees
                         </a>
                     </li>
 
                     <li class="nav-item mb-1">
                         <a class="nav-link text-white @(currentAction == "AssetCategories" ? "active-menu" : "")"
-                           asp-controller="Admin"
-                           asp-action="AssetCategories">
+                           asp-controller="Admin" asp-action="AssetCategories">
                             <i class="bi bi-box-seam me-2"></i> Asset Category
                         </a>
                     </li>
 
                     <li class="nav-item mb-1">
                         <a class="nav-link text-white @(currentAction == "Assets" ? "active-menu" : "")"
-                           asp-controller="Admin"
-                           asp-action="Assets">
+                           asp-controller="Admin" asp-action="Assets">
                             <i class="bi bi-box-seam me-2"></i> Assets
                         </a>
                     </li>
 
                     <li class="nav-item mb-1">
                         <a class="nav-link text-white @(currentAction == "LeaveManagement" ? "active-menu" : "")"
-                           asp-controller="Admin"
-                           asp-action="LeaveManagement">
+                           asp-controller="Admin" asp-action="LeaveManagement">
                             <i class="bi bi-calendar-check me-2"></i> Leave Management
                         </a>
                     </li>
 
                     <li class="nav-item mb-1">
                         <a class="nav-link text-white @(currentAction == "Roles" ? "active-menu" : "")"
-                           asp-controller="Admin"
-                           asp-action="Roles">
+                           asp-controller="Admin" asp-action="Roles">
                             <i class="bi bi-person-badge me-2"></i> Roles
                         </a>
                     </li>
@@ -110,16 +123,14 @@
                 {
                     <li class="nav-item mb-1">
                         <a class="nav-link text-white @(currentAction == "Profile" ? "active-menu" : "")"
-                           asp-controller="Employee"
-                           asp-action="Profile">
+                           asp-controller="Employee" asp-action="Profile">
                             <i class="bi bi-person-circle me-2"></i> My Profile
                         </a>
                     </li>
 
                     <li class="nav-item mb-1">
                         <a class="nav-link text-white @(currentAction == "Leave" ? "active-menu" : "")"
-                           asp-controller="Employee"
-                           asp-action="Leave">
+                           asp-controller="Employee" asp-action="Leave">
                             <i class="bi bi-calendar-check me-2"></i> My Leaves
                         </a>
                     </li>
@@ -128,8 +139,7 @@
                 <!-- Holidays -->
                 <li class="nav-item mb-3">
                     <a class="nav-link text-white @(currentAction == "Holidays" ? "active-menu" : "")"
-                       asp-controller="Admin"
-                       asp-action="Holidays">
+                       asp-controller="Admin" asp-action="Holidays">
                         <i class="bi bi-calendar-event me-2"></i> Holidays
                     </a>
                 </li>
@@ -138,18 +148,15 @@
 
                 <!-- Logout -->
                 <li class="nav-item">
-                    <a class="nav-link text-white"
-                       asp-controller="Account"
-                       asp-action="Logout">
+                    <a class="nav-link text-white" asp-controller="Account" asp-action="Logout">
                         <i class="bi bi-box-arrow-right me-2"></i> Logout
                     </a>
                 </li>
-
             </ul>
         </aside>
 
         <!-- RIGHT CONTENT -->
-        <main class="content">
+        <main class="content" id="mainContent">
             @RenderBody()
         </main>
 
@@ -161,27 +168,132 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 
     <script>
-        toastr.options = {
-            closeButton: true,
-            progressBar: true,
-            positionClass: "toast-top-right",
-            timeOut: "2500"
-        };
+            // Toastr configuration
+            toastr.options = {
+                closeButton: true,
+                progressBar: true,
+                positionClass: "toast-top-right",
+                timeOut: "2500"
+            };
+
+            // ==========================================
+            // SIDEBAR TOGGLE FUNCTIONALITY
+            // ==========================================
+
+            const sidebar = document.getElementById('sidebar');
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            const mainContent = document.getElementById('mainContent');
+
+            // Function to open sidebar
+            function openSidebar() {
+                sidebar.classList.add('active');
+                sidebarOverlay.classList.add('active');
+                document.body.style.overflow = 'hidden';
+                sidebarToggle.innerHTML = '<i class="bi bi-x-lg"></i>';
+                sidebarToggle.classList.add('shifted');
+            }
+
+            // Function to close sidebar
+            function closeSidebar() {
+                sidebar.classList.remove('active');
+                sidebarOverlay.classList.remove('active');
+                document.body.style.overflow = '';
+                sidebarToggle.innerHTML = '<i class="bi bi-list"></i>';
+                sidebarToggle.classList.remove('shifted');
+            }
+
+            // Toggle sidebar
+            function toggleSidebar() {
+                if (sidebar.classList.contains('active')) {
+                    closeSidebar();
+                } else {
+                    openSidebar();
+                }
+            }
+
+            // Event listeners
+            sidebarToggle.addEventListener('click', toggleSidebar);
+            sidebarOverlay.addEventListener('click', closeSidebar);
+
+            // Close sidebar when Escape key is pressed
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && sidebar.classList.contains('active')) {
+                    closeSidebar();
+                }
+            });
+
+            // Close sidebar when a menu link is clicked (mobile)
+            document.querySelectorAll('.sidebar .nav-link').forEach(function(link) {
+                link.addEventListener('click', function() {
+                    if (window.innerWidth <= 1024) {
+                        // Delay close to allow navigation
+                        setTimeout(closeSidebar, 150);
+                    }
+                });
+            });
+
+            // Handle window resize
+            let resizeTimer;
+            window.addEventListener('resize', function() {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(function() {
+                    if (window.innerWidth > 1024) {
+                        closeSidebar();
+                        sidebar.classList.remove('active');
+                        document.body.style.overflow = '';
+                        sidebarToggle.style.display = 'none';
+                    } else {
+                        sidebarToggle.style.display = 'flex';
+                    }
+                }, 250);
+            });
+
+            // Initial check on load - FORCE DISPLAY on all screens
+            setTimeout(function() {
+                // Always show the toggle button on all screens
+                sidebarToggle.style.display = 'flex';
+
+                // On desktop (larger than 1024px), sidebar is visible, toggle shows menu icon
+                if (window.innerWidth > 1024) {
+                    sidebar.classList.remove('active');
+                    sidebarOverlay.classList.remove('active');
+                    document.body.style.overflow = '';
+                    sidebarToggle.innerHTML = '<i class="bi bi-list"></i>';
+                    sidebarToggle.classList.remove('shifted');
+                    // Keep toggle visible on desktop too
+                    sidebarToggle.style.display = 'flex';
+                } else {
+                    // On mobile, sidebar is hidden initially
+                    sidebar.classList.remove('active');
+                    sidebarOverlay.classList.remove('active');
+                    document.body.style.overflow = '';
+                    sidebarToggle.innerHTML = '<i class="bi bi-list"></i>';
+                    sidebarToggle.classList.remove('shifted');
+                    sidebarToggle.style.display = 'flex';
+                }
+            }, 100);
+
+            // ==========================================
+            // TOASTR NOTIFICATIONS
+            // ==========================================
+
+            @if (TempData["Success"] != null)
+                {
+                    <text>
+                            toastr.success("@TempData["Success"]");
+                    </text>
+            }
+
+                @if (TempData["Error"] != null)
+                {
+                    <text>
+                            toastr.error("@TempData["Error"]");
+                    </text>
+            }
     </script>
 
-    @if (TempData["Success"] != null)
-    {
-        <script>
-            toastr.success("@TempData["Success"]");
-        </script>
-    }
-
-    @if (TempData["Error"] != null)
-    {
-        <script>
-            toastr.error("@TempData["Error"]");
-        </script>
-    }
+    @RenderSection("Scripts", required: false)
 
 </body>
 </html>

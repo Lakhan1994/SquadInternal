@@ -1,11 +1,418 @@
+/* Reset and Base */
 html, body {
     height: 100%;
     margin: 0;
     overflow-y: auto;
 }
 
-/* ================= LOGIN PAGE ================= */
+/* ========== ADMIN LAYOUT WITH TOGGLE ========== */
+.admin-shell {
+    min-height: 100vh;
+    display: flex;
+    position: relative;
+}
 
+/* Sidebar - collapsible */
+.sidebar {
+    width: 260px;
+    background: #0757B3;
+    color: white;
+    padding: 18px;
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    height: 100vh;
+    overflow-y: auto;
+    z-index: 1000;
+    transition: transform 0.3s ease, width 0.3s ease;
+    transform: translateX(0);
+}
+
+    /* Sidebar collapsed state */
+    .sidebar.collapsed {
+        transform: translateX(-100%);
+        width: 0;
+        padding: 0;
+        overflow: hidden;
+    }
+
+/* Content area */
+.content {
+    flex: 1;
+    background: #F5F7FA;
+    padding: 24px;
+    margin-left: 260px;
+    min-height: 100vh;
+    transition: margin-left 0.3s ease;
+    width: 100%;
+}
+
+    .content.expanded {
+        margin-left: 0;
+    }
+
+/* ========== SIDEBAR TOGGLE BUTTON ========== */
+.sidebar-toggle {
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    z-index: 1100;
+    background: #0757B3;
+    border: none;
+    color: white;
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    font-size: 22px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: none;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+}
+
+    .sidebar-toggle:hover {
+        background: #1e88e5;
+        transform: scale(1.05);
+    }
+
+    .sidebar-toggle.shifted {
+        left: 280px;
+    }
+
+/* ========== OVERLAY FOR MOBILE ========== */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+    .sidebar-overlay.active {
+        opacity: 1;
+    }
+
+/* ========== RESPONSIVE BREAKPOINTS ========== */
+
+/* Tablets and smaller laptops */
+@media (max-width: 1024px) {
+    .sidebar-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .sidebar {
+        transform: translateX(-100%);
+        width: 280px;
+    }
+
+        .sidebar.active {
+            transform: translateX(0);
+            width: 280px;
+            padding: 18px;
+            overflow-y: auto;
+        }
+
+        .sidebar.collapsed {
+            transform: translateX(-100%);
+            width: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+    .content {
+        margin-left: 0;
+        padding: 20px;
+        padding-top: 75px;
+        min-height: 100vh;
+    }
+
+    .sidebar-overlay {
+        display: block;
+        pointer-events: none;
+    }
+
+        .sidebar-overlay.active {
+            pointer-events: all;
+        }
+
+    .sidebar-toggle.shifted {
+        left: 15px;
+    }
+}
+
+/* Mobile devices */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 85%;
+        max-width: 320px;
+    }
+
+        .sidebar.active {
+            width: 85%;
+            max-width: 320px;
+        }
+
+    .content {
+        padding: 15px;
+        padding-top: 75px;
+    }
+
+    .dashboard-hero {
+        padding: 20px;
+    }
+
+        .dashboard-hero h3 {
+            font-size: 1.2rem;
+        }
+
+    /* Card grid for mobile */
+    .row-cols-1-mobile {
+        flex-direction: column;
+    }
+
+    .stat-card {
+        min-height: 90px;
+        padding: 15px;
+    }
+
+        .stat-card .stat-value {
+            font-size: 24px;
+        }
+
+        .stat-card .stat-icon {
+            font-size: 28px;
+        }
+
+    /* Table responsive */
+    .table-responsive-mobile {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .history-table thead th,
+    .history-table tbody td {
+        padding: 8px 10px;
+        font-size: 0.75rem;
+        white-space: nowrap;
+    }
+
+    .history-value {
+        max-width: 120px;
+    }
+
+    .history-remarks {
+        max-width: 150px;
+    }
+
+    .quick-action-tile {
+        padding: 12px 14px;
+    }
+
+        .quick-action-tile .quick-action-title {
+            font-size: 0.9rem;
+        }
+
+    /* Modals */
+    .modal-dialog {
+        margin: 10px;
+    }
+
+    .modal-body {
+        padding: 15px;
+    }
+
+    /* Calendar */
+    .calendar-grid {
+        gap: 4px;
+    }
+
+    .calendar-day {
+        padding: 8px 4px;
+        font-size: 14px;
+    }
+
+    .calendar-header {
+        font-size: 12px;
+        padding: 4px;
+    }
+
+    /* Page accent */
+    .page-accent {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 12px 15px;
+    }
+
+        .page-accent .btn {
+            width: 100%;
+        }
+
+    .roles-accent {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+        .roles-accent .btn {
+            width: 100%;
+        }
+
+    /* Hide sidebar toggle on very small screens */
+    .sidebar-toggle {
+        width: 38px;
+        height: 38px;
+        font-size: 18px;
+        top: 10px;
+        left: 10px;
+    }
+}
+
+/* Small phones */
+@media (max-width: 480px) {
+    .content {
+        padding: 10px;
+        padding-top: 65px;
+    }
+
+    .stat-card .stat-value {
+        font-size: 20px;
+    }
+
+    .stat-card .stat-label {
+        font-size: 11px;
+    }
+
+    .dashboard-hero {
+        padding: 15px;
+    }
+
+        .dashboard-hero h3 {
+            font-size: 1rem;
+        }
+
+    .quick-action-tile {
+        padding: 10px 12px;
+    }
+
+        .quick-action-tile .quick-action-icon {
+            width: 36px;
+            height: 36px;
+            font-size: 16px;
+        }
+
+    .nav-tabs .nav-link {
+        font-size: 0.8rem;
+        padding: 6px 10px;
+    }
+
+    .calendar-day {
+        padding: 6px 2px;
+        font-size: 12px;
+        border-radius: 6px;
+    }
+
+    .calendar-legend {
+        gap: 10px;
+        font-size: 10px;
+    }
+
+    .calendar-legend-color {
+        width: 10px;
+        height: 10px;
+    }
+
+    .sidebar-toggle {
+        width: 34px;
+        height: 34px;
+        font-size: 16px;
+        top: 8px;
+        left: 8px;
+    }
+
+    /* Modal adjustments */
+    .modal-dialog {
+        margin: 5px;
+    }
+
+    .modal-header {
+        padding: 10px 12px;
+    }
+
+    .modal-body {
+        padding: 10px 12px;
+    }
+
+    .modal-footer {
+        padding: 10px 12px;
+        flex-wrap: wrap;
+    }
+
+        .modal-footer .btn {
+            font-size: 0.8rem;
+            padding: 5px 12px;
+        }
+}
+
+/* ========== SIDEBAR MENU MOBILE IMPROVEMENTS ========== */
+@media (max-width: 1024px) {
+    .sidebar .logo-box {
+        padding: 8px 6px 18px;
+    }
+
+        .sidebar .logo-box img {
+            width: 150px;
+        }
+
+    .sidebar .nav-link {
+        padding: 10px 12px;
+        font-size: 0.95rem;
+    }
+
+        .sidebar .nav-link i {
+            font-size: 1.1rem;
+        }
+
+    .sidebar hr {
+        margin: 15px 0;
+    }
+}
+
+/* ========== TOUCH-FRIENDLY INTERACTIONS ========== */
+@media (hover: none) {
+    .menu-link:hover,
+    .nav-link:hover {
+        transform: none;
+    }
+
+    .dashboard-card:hover {
+        transform: none;
+    }
+
+    .stat-card:hover {
+        transform: none;
+    }
+
+    .quick-action-tile:hover {
+        transform: none;
+    }
+
+    .calendar-day:hover {
+        transform: none;
+    }
+}
+
+/* ========== EXISTING STYLES (KEPT) ========== */
+
+/* ================= LOGIN PAGE ================= */
 .login-page {
     min-height: 100vh;
     width: 100%;
@@ -72,7 +479,6 @@ html, body {
 }
 
 /* ================= PAGE HEADER ================= */
-
 .page-accent {
     background: #E8F4FF;
     border-left: 6px solid #4DA3FF;
@@ -102,7 +508,6 @@ html, body {
     }
 
 /* ================= ROLES HEADER ================= */
-
 .roles-accent {
     background: #E8F4FF;
     border-left: 6px solid #4DA3FF;
@@ -132,76 +537,7 @@ html, body {
         color: white;
     }
 
-/* ================= ADMIN LAYOUT ================= */
-
-.admin-shell {
-    min-height: 100vh;
-    display: flex;
-}
-
-.sidebar {
-    width: 260px;
-    background: #0757B3;
-    color: white;
-    padding: 18px;
-}
-
-.logo-box {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 6px 18px;
-    border-bottom: 1px solid rgba(255,255,255,.12);
-    margin-bottom: 16px;
-}
-
-.content {
-    flex: 1;
-    background: #F5F7FA;
-    padding: 24px;
-}
-
-/* ======== Make sidebar fixed and content scrollable independently ======== */
-/* Prevent the whole page from scrolling and keep sidebar stationary */
-.admin-shell {
-    height: 100vh; /* full viewport height */
-    overflow: hidden; /* prevent body scroll; content will scroll */
-}
-
-.sidebar {
-    position: fixed;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    height: 100vh;
-    overflow-y: auto; /* allow sidebar to scroll if menu long */
-    z-index: 1000;
-}
-
-.content {
-    margin-left: 260px; /* same as .sidebar width */
-    height: 100vh;
-    overflow-y: auto; /* content scroll only */
-    -webkit-overflow-scrolling: touch;
-}
-
-/* Small screens: make sidebar collapsible (stack above content) */
-@media (max-width: 991.98px) {
-    .sidebar {
-        position: relative;
-        width: 100%;
-        height: auto;
-    }
-
-    .content {
-        margin-left: 0;
-        height: auto;
-        overflow: visible;
-    }
-}
-
 /* ================= MENU ================= */
-
 .menu-link {
     display: block;
     color: white;
@@ -219,7 +555,6 @@ html, body {
 }
 
 /* ================= DASHBOARD CARDS ================= */
-
 .dashboard-card {
     transition: 0.2s ease-in-out;
 }
@@ -230,7 +565,6 @@ html, body {
     }
 
 /* ================= NAV LINKS ================= */
-
 .nav-link {
     border-radius: 8px;
     transition: all 0.2s ease;
@@ -252,10 +586,7 @@ html, body {
     font-weight: 600;
 }
 
-/* ================= COMPACT CALENDAR ================= */
-
 /* ================= BOOTSTRAP MODAL FIX ================= */
-
 .modal {
     z-index: 1055 !important;
 }
@@ -263,28 +594,29 @@ html, body {
 .modal-backdrop {
     z-index: 1050 !important;
 }
+
 .modal-dialog.modal-xl {
-    /* Ensure large modal fits viewport and allows internal scrolling */
     max-height: 90vh;
 }
 
 .modal-dialog-scrollable .modal-content {
-    /* Prevent content from expanding beyond viewport */
     max-height: 90vh;
     overflow: hidden;
 }
 
 .modal-dialog-scrollable .modal-body {
-    /* Give modal body its own scrollable area */
-    max-height: calc(90vh - 140px); /* header + footer ~140px */
+    max-height: calc(90vh - 140px);
     overflow-y: auto;
 }
+
 .page-accent .btn {
     height: 38px;
 }
+
 .btn-primary {
     color: #fff !important;
 }
+
 .active-menu {
     background-color: #ffffff !important;
     color: #000000 !important;
@@ -295,6 +627,7 @@ html, body {
     .active-menu i {
         color: #000000 !important;
     }
+
 .active-menu {
     background: rgba(255,255,255,0.18);
     border-radius: 8px;
@@ -316,10 +649,10 @@ html, body {
     cursor: pointer;
 }
 
-.pop-card:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 18px 35px rgba(0,0,0,0.12);
-}
+    .pop-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 18px 35px rgba(0,0,0,0.12);
+    }
 
 .dashboard-card {
     background: #eaf4ff;
@@ -363,16 +696,12 @@ html, body {
         transform: scale(1.05);
     }
 
-    /* ================= TODAY ================= */
-
     .calendar-day.today {
         background: #1e88e5;
         color: white;
         font-weight: 700;
         border-color: #1565c0;
     }
-
-    /* ================= HOLIDAY ================= */
 
     .calendar-day.holiday {
         background: #ffe0e0;
@@ -381,8 +710,6 @@ html, body {
         font-weight: 700;
     }
 
-    /* ================= APPROVED LEAVE ================= */
-
     .calendar-day.leave {
         background: #e3f2fd;
         color: #1565c0;
@@ -390,10 +717,8 @@ html, body {
         font-weight: 700;
     }
 
-    /* ================= HOLIDAY + LEAVE ================= */
-
     .calendar-day.holiday.leave {
-        background: linear-gradient( 135deg, #ffe0e0 0%, #ffe0e0 50%, #e3f2fd 50%, #e3f2fd 100% );
+        background: linear-gradient(135deg, #ffe0e0 0%, #ffe0e0 50%, #e3f2fd 50%, #e3f2fd 100%);
         color: #333;
         border: 1px solid #90a4ae;
         font-weight: 700;
@@ -422,19 +747,16 @@ html, body {
     display: inline-block;
 }
 
-/* Holiday */
 .holiday-legend {
     background: #ffe0e0;
     border: 1px solid #ef9a9a;
 }
 
-/* Approved Leave */
 .leave-legend {
     background: #e3f2fd;
     border: 1px solid #90caf9;
 }
 
-/* Today */
 .today-legend {
     background: #1e88e5;
     border: 1px solid #1565c0;
@@ -455,7 +777,6 @@ html, body {
     }
 
 /* ================= DASHBOARD HERO ================= */
-
 .dashboard-hero {
     background: linear-gradient(135deg, #0757B3 0%, #1e88e5 55%, #4DA3FF 100%);
     border-radius: 16px;
@@ -492,7 +813,6 @@ html, body {
     }
 
 /* ================= STAT CARDS ================= */
-
 .stat-card {
     border-radius: 14px;
     border: none;
@@ -548,7 +868,6 @@ html, body {
 }
 
 /* ================= QUICK ACTIONS ================= */
-
 .quick-action-tile {
     display: flex;
     align-items: center;
@@ -595,7 +914,6 @@ html, body {
     }
 
 /* ================= UPCOMING HOLIDAYS PANEL ================= */
-
 .holiday-list-item {
     display: flex;
     align-items: center;
@@ -608,28 +926,27 @@ html, body {
         border-bottom: none;
     }
 
-    .holiday-date-badge {
-        min-width: 48px;
-        height: 48px;
-        border-radius: 10px;
-        background: #eaf4ff;
-        color: #0757B3;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        font-weight: 700;
-        line-height: 1;
+.holiday-date-badge {
+    min-width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    background: #eaf4ff;
+    color: #0757B3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    line-height: 1;
+}
+
+    .holiday-date-badge small {
+        font-size: 10px;
+        font-weight: 600;
+        opacity: 0.75;
     }
 
-        .holiday-date-badge small {
-            font-size: 10px;
-            font-weight: 600;
-            opacity: 0.75;
-        }
-
 /* ================= EMPLOYEE LIST AVATAR ================= */
-
 .emp-avatar-img {
     width: 38px;
     height: 38px;
@@ -652,7 +969,21 @@ html, body {
 }
 
 /* HERO HEADER */
-.hero-title h4 { margin: 0; font-weight: 700; }
-.hero-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 1px solid #e6eefb; }
-.hero-avatar-initials { width:44px; height:44px; font-size:14px; }
+.hero-title h4 {
+    margin: 0;
+    font-weight: 700;
+}
 
+.hero-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid #e6eefb;
+}
+
+.hero-avatar-initials {
+    width: 44px;
+    height: 44px;
+    font-size: 14px;
+}
