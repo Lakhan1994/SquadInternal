@@ -12,20 +12,18 @@
 
 <style>
     .profile-header {
-        background: linear-gradient(135deg,#4e73df,#3f5fc4);
-        border-radius: 14px;
-        color: #fff;
+        background: #fff;
+        color: #2c2c2c;
         padding: 1.75rem;
         display: flex;
         align-items: center;
         gap: 1.25rem;
-        box-shadow: 0 4px 14px rgba(0,0,0,.08);
     }
     .profile-avatar {
         width: 72px;
         height: 72px;
         border-radius: 50%;
-        background: rgba(255,255,255,.2);
+        background: #0757B3;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -66,7 +64,7 @@
 </div>
 
 <!-- ================= PROFILE HEADER ================= -->
-<div class="profile-header mt-3">
+<div class="profile-header info-card mt-3">
     <div class="profile-avatar">@initials</div>
     <div>
         <h4 class="mb-1">@Model.FullName</h4>
@@ -131,7 +129,7 @@
     }
     else
     {
-        <div class="text-muted">No assets assigned.</div>
+        <div class="empty-state"><i class="bi bi-box-seam" aria-hidden="true"></i>No assets assigned.</div>
     }
 
     @* Admin-only assign modal *@
@@ -150,8 +148,8 @@
                             <input type="hidden" name="employeeId" value="@Model.Id" />
 
                             <div class="mb-3">
-                                <label class="form-label">Select Asset</label>
-                                <select name="assetId" class="form-select" required>
+                                <label for="profileAssetId" class="form-label">Select Asset</label>
+                                <select id="profileAssetId" name="assetId" class="form-select" required>
                                     <option value="">Select asset</option>
                                     @foreach (var av in available)
                                     {
@@ -161,8 +159,8 @@
                             </div>
 
                             <div class="mb-3">
-                                <label class="form-label">Handover Remarks</label>
-                                <textarea name="handoverRemarks" class="form-control" rows="3"></textarea>
+                                <label for="profileHandoverRemarks" class="form-label">Handover Remarks</label>
+                                <textarea id="profileHandoverRemarks" name="handoverRemarks" class="form-control" rows="3"></textarea>
                             </div>
 
                             <div class="text-end">
@@ -257,7 +255,7 @@
                 else
                 {
                     <tr>
-                        <td colspan="6" class="text-center text-muted py-3">
+                        <td colspan="6" class="empty-state">
                             <i class="bi bi-inbox fs-4 d-block mb-1"></i>
                             No education records found.
                         </td>
@@ -296,7 +294,7 @@
                             <td>@doc.UploadedDate.ToLocalTime().ToString("dd MMM yyyy HH:mm")</td>
                             <td>
                                 <a asp-action="DownloadMyDocument" asp-controller="Employee" asp-route-id="@doc.Id"
-                                   class="btn btn-sm btn-outline-primary" title="Download">
+                                   class="btn btn-sm btn-outline-primary" title="Download" aria-label="Download document">
                                     <i class="bi bi-download"></i>
                                 </a>
                             </td>
@@ -306,7 +304,7 @@
                 else
                 {
                     <tr>
-                        <td colspan="4" class="text-center text-muted py-3">
+                        <td colspan="4" class="empty-state">
                             <i class="bi bi-inbox fs-4 d-block mb-1"></i>
                             No documents uploaded yet.
                         </td>

@@ -13,7 +13,7 @@
     <input type="hidden" id="docEmployeeId" value="@employee?.Id" />
 
     <div class="col-md-3">
-        <label class="form-label">Document Type</label>
+        <label for="docType" class="form-label">Document Type</label>
         <select id="docType" class="form-select" required>
             <option value="">-- Select --</option>
             @foreach (var type in documentTypes)
@@ -24,12 +24,12 @@
     </div>
 
     <div class="col-md-3 d-none" id="docTypeOtherDiv">
-        <label class="form-label">Specify Document Type</label>
+        <label for="docTypeOther" class="form-label">Specify Document Type</label>
         <input id="docTypeOther" class="form-control" placeholder="Enter document type" />
     </div>
 
     <div class="col-md-4">
-        <label class="form-label">File</label>
+        <label for="docFile" class="form-label">File</label>
         <input type="file" id="docFile" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" required />
     </div>
 
@@ -52,7 +52,7 @@
             @if (Model == null || Model.Count == 0)
             {
                 <tr>
-                    <td colspan="4" class="text-center text-muted">No documents uploaded yet.</td>
+                    <td colspan="4" class="empty-state">No documents uploaded yet.</td>
                 </tr>
             }
             else
@@ -68,12 +68,12 @@
                         <td>@doc.UploadedDate.ToLocalTime().ToString("dd-MMM-yyyy HH:mm")</td>
                         <td>
                             <a asp-action="DownloadEmployeeDocument" asp-controller="Admin" asp-route-id="@doc.Id"
-                               class="btn btn-sm btn-outline-primary me-1" title="Download">
+                               class="btn btn-sm btn-outline-primary me-1" title="Download" aria-label="Download employee document">
                                 <i class="bi bi-download"></i>
                             </a>
 
                             <button type="button" class="btn btn-sm btn-outline-danger"
-                                    title="Delete"
+                                    title="Delete" aria-label="Delete employee document"
                                     onclick="deleteEmployeeDocument(@doc.Id, @doc.EmployeeId)">
                                 <i class="bi bi-trash3"></i>
                             </button>

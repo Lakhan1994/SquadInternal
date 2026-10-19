@@ -8,8 +8,10 @@ using SquadInternal.Models.Enum;
 using SquadInternal.Models.ViewModels;
 using SquadInternal.Services;
 using System;
+using System.Data;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 
@@ -19,6 +21,8 @@ namespace SquadInternal.Controllers
     {
         private readonly AppDbContext _db;
         private readonly PasswordService _passwordService;
+        private readonly AnnualLeavePolicyService _leavePolicyService;
+        private readonly AnnualLeaveRolloverService _rolloverService;
 
         
 
@@ -33,6 +37,25 @@ namespace SquadInternal.Controllers
 
             return await _db.Employees
                 .FirstOrDefaultAsync(e => e.UserId == CurrentUserId && e.IsActive);
+        }
+
+        private async Task PopulateLeavePolicyViewDataAsync()
+        {
+            ViewBag.RolloverExecution = await _db.LeaveRolloverExecutions
+                .OrderByDescending(item => item.LeaveYear)
+                .FirstOrDefaultAsync();
+            ViewBag.AdjustmentKey = Guid.NewGuid().ToString("N");
+            ViewBag.ActiveEmployees = await _db.Employees
+                .Where(employee => employee.IsActive)
+                .OrderBy(employee => employee.FirstName)
+                .ThenBy(employee => employee.LastName)
+                .ToListAsync();
+            ViewBag.PendingBonuses = await _db.LeaveBalanceTransactions
+                .Include(item => item.Employee)
+                .Where(item => item.TransactionType == "BonusPending")
+                .OrderBy(item => item.LeaveYear)
+                .ThenBy(item => item.EmployeeId)
+                .ToListAsync();
         }
 
         private async Task<bool> HasOverlappingLeaveAsync(int employeeId, DateTime from, DateTime to)
@@ -65,6 +88,7 @@ namespace SquadInternal.Controllers
         {
             int? roleId = HttpContext.Session.GetInt32("RoleId");
             bool isAdmin = roleId == 1;
+            ViewBag.MyApprovedLeaveDays = 0m;
 
             // ==========================================
             // DASHBOARD COUNTS
@@ -81,10 +105,14 @@ namespace SquadInternal.Controllers
             // HOLIDAYS
             // ==========================================
 
-            var holidayDates = await _db.SquadHolidays
+            var dashboardHolidays = await _db.SquadHolidays
                 .Where(h => h.IsActive)
-                .Select(h => h.HolidayDate.Date)
+                .Select(h => new { h.HolidayDate, h.IsHalfDay })
                 .ToListAsync();
+            var holidayDates = dashboardHolidays.Select(h => h.HolidayDate.Date).ToList();
+            var holidayCalendar = dashboardHolidays
+                .GroupBy(h => h.HolidayDate.Date)
+                .ToDictionary(group => group.Key, group => group.All(h => h.IsHalfDay));
 
             ViewBag.Holidays = holidayDates;
 
@@ -154,6 +182,8 @@ namespace SquadInternal.Controllers
 
                 ViewBag.MyApprovedLeaveCount =
                     approvedLeaves.Count;
+                ViewBag.MyApprovedLeaveDays = approvedLeaves.Sum(l =>
+                    LeaveDayCalculator.Calculate(l.FromDate, l.ToDate, l.Duration, holidayCalendar));
 
                 ViewBag.EmployeeName =
                     employee.FullName;
@@ -602,6 +632,281 @@ namespace SquadInternal.Controllers
         }
 
         // ================= LEAVE APPROVALS =================
+        [AuthorizeAdminOrHR]
+        public async Task<IActionResult> LeavePolicy()
+        {
+            var policy = await _db.AnnualLeavePolicies
+                .OrderByDescending(item => item.EffectiveFrom)
+                .FirstOrDefaultAsync();
+            await PopulateLeavePolicyViewDataAsync();
+            return View(policy ?? new AnnualLeavePolicy());
+        }
+
+        [AuthorizeAdminOrHR]
+        public async Task<IActionResult> NewLeavePolicy()
+        {
+            var latest = await _db.AnnualLeavePolicies.OrderByDescending(item => item.EffectiveFrom).FirstOrDefaultAsync();
+            var next = latest ?? new AnnualLeavePolicy();
+            var model = new AnnualLeavePolicy
+            {
+                EffectiveFrom = new DateTime(next.EffectiveFrom.Year + 1, next.EffectiveFrom.Month, next.EffectiveFrom.Day),
+                CasualLeaveDays = next.CasualLeaveDays,
+                SickLeaveDays = next.SickLeaveDays,
+                EarnedLeaveEnabled = next.EarnedLeaveEnabled,
+                EarnedLeaveDays = next.EarnedLeaveDays,
+                ProrateNewJoiners = next.ProrateNewJoiners,
+                CasualLeaveBonusEligible = next.CasualLeaveBonusEligible,
+                SickLeaveBonusEligible = next.SickLeaveBonusEligible,
+                BonusConversionRate = next.BonusConversionRate,
+                BonusMaxEligibleUnusedDays = next.BonusMaxEligibleUnusedDays,
+                BonusMaxDaysPerEmployeeYear = next.BonusMaxDaysPerEmployeeYear,
+                BonusUsesSeparateCategory = next.BonusUsesSeparateCategory,
+                BonusExpirationMonths = next.BonusExpirationMonths,
+                BonusRequiresApproval = next.BonusRequiresApproval,
+                CarryForwardUnusedLeave = next.CarryForwardUnusedLeave,
+                BusinessTimeZoneId = next.BusinessTimeZoneId
+            };
+            await PopulateLeavePolicyViewDataAsync();
+            return View("LeavePolicy", model);
+        }
+
+        [AuthorizeAdminOrHR]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SaveLeavePolicy(AnnualLeavePolicy model)
+        {
+            if (model.EffectiveFrom.Date < new DateTime(2027, 1, 1) ||
+                model.CasualLeaveDays < 0m || model.SickLeaveDays < 0m || model.EarnedLeaveDays < 0m ||
+                model.BonusConversionRate < 0m || model.BonusMaxEligibleUnusedDays < 0m ||
+                model.BonusMaxDaysPerEmployeeYear < 0m || model.BonusExpirationMonths < 0 ||
+                (model.BonusExpirationMonths.HasValue && !model.BonusUsesSeparateCategory) ||
+                string.IsNullOrWhiteSpace(model.ChangeReason))
+            {
+                ModelState.AddModelError(string.Empty, "Use a policy date on or after 1 January 2027, non-negative values, a change reason, and a separate category for expiring bonus leave.");
+                await PopulateLeavePolicyViewDataAsync();
+                return View("LeavePolicy", model);
+            }
+
+            var policy = await _db.AnnualLeavePolicies.FirstOrDefaultAsync(item => item.Id == model.Id);
+            if ((policy != null && policy.EffectiveFrom.Date != model.EffectiveFrom.Date) ||
+                (policy == null && await _db.AnnualLeavePolicies.AnyAsync(item => item.EffectiveFrom.Date == model.EffectiveFrom.Date)))
+            {
+                ModelState.AddModelError(nameof(model.EffectiveFrom), "An effective date is immutable and must be unique. Create a new policy version for a future date.");
+                await PopulateLeavePolicyViewDataAsync();
+                return View("LeavePolicy", model);
+            }
+
+            if (policy == null)
+            {
+                policy = new AnnualLeavePolicy();
+                _db.AnnualLeavePolicies.Add(policy);
+            }
+
+            policy.EffectiveFrom = model.EffectiveFrom.Date;
+            policy.CasualLeaveDays = 3m;
+            policy.SickLeaveDays = 3m;
+            policy.EarnedLeaveEnabled = model.EarnedLeaveEnabled;
+            policy.EarnedLeaveDays = model.EarnedLeaveEnabled ? 6m : 0m;
+            policy.ProrateNewJoiners = true;
+            policy.CasualLeaveBonusEligible = model.CasualLeaveBonusEligible;
+            policy.SickLeaveBonusEligible = model.SickLeaveBonusEligible;
+            policy.BonusConversionRate = model.BonusConversionRate;
+            policy.BonusMaxEligibleUnusedDays = model.BonusMaxEligibleUnusedDays;
+            policy.BonusMaxDaysPerEmployeeYear = model.BonusMaxDaysPerEmployeeYear;
+            policy.BonusUsesSeparateCategory = model.BonusUsesSeparateCategory;
+            policy.BonusExpirationMonths = model.BonusExpirationMonths;
+            policy.BonusRequiresApproval = model.BonusRequiresApproval;
+            policy.CarryForwardUnusedLeave = model.CarryForwardUnusedLeave;
+            policy.BusinessTimeZoneId = model.BusinessTimeZoneId;
+            policy.UpdatedByUserId = HttpContext.Session.GetInt32("UserId");
+            policy.UpdatedOn = DateTime.UtcNow;
+            policy.ChangeReason = model.ChangeReason.Trim();
+
+            var executionStrategy = _db.Database.CreateExecutionStrategy();
+            await executionStrategy.ExecuteAsync(async () =>
+            {
+                await using var policyTransaction = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+                await _db.SaveChangesAsync();
+                _db.AnnualLeavePolicyAudits.Add(new AnnualLeavePolicyAudit
+                {
+                    AnnualLeavePolicyId = policy.Id,
+                    ChangedByUserId = policy.UpdatedByUserId ?? 0,
+                    ChangedOn = policy.UpdatedOn,
+                    Reason = policy.ChangeReason,
+                    SnapshotJson = JsonSerializer.Serialize(policy)
+                });
+                await _db.SaveChangesAsync();
+                await policyTransaction.CommitAsync();
+            });
+
+            TempData["Success"] = "Annual leave policy saved and audited.";
+            return RedirectToAction(nameof(LeavePolicy));
+        }
+
+        [AuthorizeAdminOrHR]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ProcessLeaveRollover(int year)
+        {
+            if (year < 2027 || year > DateTime.UtcNow.Year)
+            {
+                TempData["Error"] = "Only a leave year that has started can be processed.";
+                return RedirectToAction(nameof(LeavePolicy));
+            }
+
+            try
+            {
+                await _rolloverService.ProcessYearAsync(year, HttpContext.Session.GetInt32("UserId"));
+                TempData["Success"] = $"Leave rollover for {year} completed or was already complete.";
+            }
+            catch
+            {
+                TempData["Error"] = "Rollover failed. The failed attempt was recorded and can be retried.";
+            }
+
+            return RedirectToAction(nameof(LeavePolicy));
+        }
+
+        [AuthorizeAdminOrHR]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ApproveBonusCredit(long id)
+        {
+            var executionStrategy = _db.Database.CreateExecutionStrategy();
+            return await executionStrategy.ExecuteAsync<IActionResult>(async () =>
+            {
+                await using var transaction = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+                var pending = await _db.LeaveBalanceTransactions
+                    .FirstOrDefaultAsync(item => item.Id == id && item.TransactionType == "BonusPending");
+                if (pending == null)
+                {
+                    await transaction.RollbackAsync();
+                    TempData["Error"] = "Pending bonus credit was not found or has already been processed.";
+                    return RedirectToAction(nameof(LeavePolicy));
+                }
+
+                if (pending.ExpiresOn.HasValue && pending.ExpiresOn.Value <= DateTime.UtcNow)
+                {
+                    await transaction.RollbackAsync();
+                    TempData["Error"] = "This pending bonus has expired and cannot be approved.";
+                    return RedirectToAction(nameof(LeavePolicy));
+                }
+
+                var employee = await _db.Employees.IgnoreQueryFilters()
+                    .FirstOrDefaultAsync(item => item.Id == pending.EmployeeId);
+                if (employee == null)
+                {
+                    await transaction.RollbackAsync();
+                    TempData["Error"] = "The employee record for this bonus no longer exists.";
+                    return RedirectToAction(nameof(LeavePolicy));
+                }
+
+                var balance = await _leavePolicyService.GetOrCreateBalanceAsync(employee, pending.LeaveYear, pending.LeaveType);
+                if (balance == null)
+                {
+                    await transaction.RollbackAsync();
+                    TempData["Error"] = "The bonus category is no longer configured.";
+                    return RedirectToAction(nameof(LeavePolicy));
+                }
+
+                pending.TransactionType = "BonusApproved";
+                balance.BonusCredits += pending.Days;
+                balance.ClosingBalance += pending.Days;
+                balance.UpdatedOn = DateTime.UtcNow;
+                _db.LeaveBalanceTransactions.Add(new LeaveBalanceTransaction
+                {
+                    EmployeeId = pending.EmployeeId,
+                    LeaveYear = pending.LeaveYear,
+                    LeaveType = pending.LeaveType,
+                    TransactionType = "BonusCredit",
+                    Days = pending.Days,
+                    ExpiresOn = pending.ExpiresOn,
+                    CreatedByUserId = HttpContext.Session.GetInt32("UserId"),
+                    CreatedOn = DateTime.UtcNow,
+                    IdempotencyKey = $"bonus-approval:{pending.Id}",
+                    Reason = $"Approved pending bonus credit {pending.Id}"
+                });
+                await _db.SaveChangesAsync();
+                await transaction.CommitAsync();
+                TempData["Success"] = "Bonus credit approved and added to the leave balance.";
+                return RedirectToAction(nameof(LeavePolicy));
+            });
+        }
+
+        [AuthorizeAdminOrHR]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AdjustLeaveBalance(
+            int employeeId, int leaveYear, string leaveType, decimal days, string reason, string adjustmentKey)
+        {
+            var category = AnnualLeavePolicyService.NormalizeAnnualLeaveType(leaveType);
+            if (leaveYear < 2027 || leaveYear > DateTime.UtcNow.Year || category == null ||
+                days == 0m || string.IsNullOrWhiteSpace(reason) || !Guid.TryParseExact(adjustmentKey, "N", out _))
+            {
+                TempData["Error"] = "Provide a valid policy-year category, non-zero adjustment, and reason.";
+                return RedirectToAction(nameof(LeavePolicy));
+            }
+
+            var executionStrategy = _db.Database.CreateExecutionStrategy();
+            return await executionStrategy.ExecuteAsync<IActionResult>(async () =>
+            {
+                await using var transaction = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+                var existingTransaction = await _db.LeaveBalanceTransactions
+                    .FirstOrDefaultAsync(item => item.IdempotencyKey == $"manual-adjustment:{adjustmentKey}");
+                if (existingTransaction != null)
+                {
+                    await transaction.CommitAsync();
+                    TempData["Success"] = "This adjustment was already recorded.";
+                    return RedirectToAction(nameof(LeavePolicy));
+                }
+
+                var employee = await _db.Employees.FirstOrDefaultAsync(item => item.Id == employeeId && item.IsActive);
+                if (employee == null)
+                {
+                    await transaction.RollbackAsync();
+                    TempData["Error"] = "Active employee not found.";
+                    return RedirectToAction(nameof(LeavePolicy));
+                }
+
+                var balance = await _leavePolicyService.GetOrCreateBalanceAsync(employee, leaveYear, category);
+                if (balance == null)
+                {
+                    await transaction.RollbackAsync();
+                    TempData["Error"] = "No active balance exists for that category.";
+                    return RedirectToAction(nameof(LeavePolicy));
+                }
+
+                var holidays = await _leavePolicyService.GetHolidayMapAsync(new DateTime(leaveYear, 1, 1), new DateTime(leaveYear, 12, 31));
+                var available = await _leavePolicyService.GetAvailableBalanceAsync(balance);
+                if (available + days < 0m)
+                {
+                    await transaction.RollbackAsync();
+                    TempData["Error"] = "The adjustment would make the available balance negative.";
+                    return RedirectToAction(nameof(LeavePolicy));
+                }
+
+                balance.Adjustments += days;
+                balance.ClosingBalance += days;
+                balance.UpdatedOn = DateTime.UtcNow;
+                _db.LeaveBalanceTransactions.Add(new LeaveBalanceTransaction
+                {
+                    EmployeeId = employeeId,
+                    LeaveYear = leaveYear,
+                    LeaveType = category,
+                    TransactionType = "Adjustment",
+                    Days = days,
+                    CreatedByUserId = HttpContext.Session.GetInt32("UserId"),
+                    CreatedOn = DateTime.UtcNow,
+                    IdempotencyKey = $"manual-adjustment:{adjustmentKey}",
+                    Reason = reason.Trim()
+                });
+                await _db.SaveChangesAsync();
+                await transaction.CommitAsync();
+                TempData["Success"] = "Balance adjustment recorded.";
+                return RedirectToAction(nameof(LeavePolicy));
+            });
+        }
+
         [AuthorizeAdmin]
         public async Task<IActionResult> LeaveApprovals()
         {
@@ -616,16 +921,50 @@ namespace SquadInternal.Controllers
 
         [AuthorizeAdmin]
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> ApproveLeave(int id)
         {
-            var leave = await _db.EmployeeLeaves.FindAsync(id);
-            if (leave == null)
-                return RedirectToAction("LeaveApprovals");
+            EmployeeLeave? approvedLeave = null;
+            var executionStrategy = _db.Database.CreateExecutionStrategy();
+            var transactionFailure = await executionStrategy.ExecuteAsync<IActionResult?>(async () =>
+            {
+                await using var transaction = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+                var leave = await _db.EmployeeLeaves.Include(item => item.Employee).FirstOrDefaultAsync(item => item.Id == id);
+                if (leave == null)
+                {
+                    await transaction.RollbackAsync();
+                    return RedirectToAction("LeaveApprovals");
+                }
 
-            leave.Status = "Approved";
-            leave.ApprovedByUserId = HttpContext.Session.GetInt32("UserId");
+                if (leave.Status != "Pending")
+                {
+                    await transaction.RollbackAsync();
+                    TempData["Error"] = "This leave request has already been processed.";
+                    return RedirectToAction("LeaveApprovals");
+                }
 
-            await _db.SaveChangesAsync();
+                var approverUserId = HttpContext.Session.GetInt32("UserId");
+                if (!await _leavePolicyService.RecordApprovalAsync(leave, approverUserId))
+                {
+                    await transaction.RollbackAsync();
+                    TempData["Error"] = "Insufficient available balance to approve this request.";
+                    return RedirectToAction("LeaveApprovals");
+                }
+
+                leave.Status = "Approved";
+                leave.ApprovedByUserId = approverUserId;
+                leave.DecisionOn = DateTime.UtcNow;
+
+                await _db.SaveChangesAsync();
+                await transaction.CommitAsync();
+                approvedLeave = leave;
+                return null;
+            });
+
+            if (transactionFailure != null)
+                return transactionFailure;
+
+            var leave = approvedLeave!;
 
             // 🔥 Send email to employee
             var employee = await _db.Employees
@@ -636,10 +975,10 @@ namespace SquadInternal.Controllers
             {
                 var body = _emailService.GetLeaveApprovedTemplate(
                employee.User.Email, // or employee.FirstName
-               leave.FromDate,
-               leave.ToDate,
-               leave.LeaveType,
-               leave.Reason
+                    leave.FromDate,
+                    leave.ToDate,
+                    leave.LeaveType,
+                    leave.Reason
  );
 
                 _emailService.SendEmail(
@@ -654,13 +993,28 @@ namespace SquadInternal.Controllers
 
         [AuthorizeAdmin]
         [HttpPost]
-        public async Task<IActionResult> RejectLeave(int id)
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RejectLeave(int id, string? rejectionReason)
         {
             var leave = await _db.EmployeeLeaves.FindAsync(id);
             if (leave == null) return RedirectToAction("LeaveApprovals");
 
+            if (leave.Status != "Pending")
+            {
+                TempData["Error"] = "This leave request has already been processed.";
+                return RedirectToAction("LeaveApprovals");
+            }
+
+            if (string.IsNullOrWhiteSpace(rejectionReason))
+            {
+                TempData["Error"] = "A rejection reason is required.";
+                return RedirectToAction("LeaveApprovals");
+            }
+
             leave.Status = "Rejected";
             leave.ApprovedByUserId = HttpContext.Session.GetInt32("UserId");
+            leave.DecisionOn = DateTime.UtcNow;
+            leave.RejectionReason = rejectionReason.Trim();
             await _db.SaveChangesAsync();
             var employee = await _db.Employees
     .Include(e => e.User)
@@ -709,6 +1063,15 @@ namespace SquadInternal.Controllers
                 return RedirectToAction("ApplyLeave");
             }
 
+            if (model.FromDate.Date < DateTime.Today ||
+                model.Duration is not ("Full Day" or "First Half" or "Second Half") ||
+                (model.Duration != "Full Day" && model.FromDate.Date != model.ToDate.Date) ||
+                string.IsNullOrWhiteSpace(model.Reason))
+            {
+                TempData["Error"] = "Use valid dates and duration, and provide a reason. Half-day requests must cover one date.";
+                return RedirectToAction("MyLeaves");
+            }
+
             var userId = HttpContext.Session.GetInt32("UserId");
             if (userId == null)
                 return RedirectToAction("Login", "Account");
@@ -722,30 +1085,69 @@ namespace SquadInternal.Controllers
                 return RedirectToAction("Dashboard");
             }
 
-            // 🔥 OVERLAP CHECK (FIXED WITH .Date)
-            bool overlappingLeave = await HasOverlappingLeaveAsync(
-            employee.Id,
-            model.FromDate,
-            model.ToDate
-            );
-
-            if (overlappingLeave)
+            var annualLeaveType = AnnualLeavePolicyService.NormalizeAnnualLeaveType(model.LeaveType);
+            var policy = await _leavePolicyService.GetPolicyAsync(model.FromDate.Year);
+            if ((annualLeaveType == "Earned Leave" && model.FromDate.Year >= 2027 && (policy == null || !policy.EarnedLeaveEnabled)) ||
+                (annualLeaveType == "Bonus Leave" && model.FromDate.Year >= 2027 && (policy == null || !policy.BonusUsesSeparateCategory)) ||
+                (annualLeaveType != null && model.FromDate.Year >= 2027 && model.FromDate.Year != model.ToDate.Year))
             {
-                TempData["Error"] = "You already have leave applied for these dates.";
-                return RedirectToAction("ApplyLeave");
+                TempData["Error"] = "This annual leave category is unavailable or the request crosses leave years.";
+                return RedirectToAction("MyLeaves");
             }
 
-            model.EmployeeId = employee.Id;
-            model.Status = "Pending";
-            model.AppliedOn = DateTime.Now;
+            var holidays = await _leavePolicyService.GetHolidayMapAsync(model.FromDate, model.ToDate);
+            var leaveDays = LeaveDayCalculator.Calculate(model.FromDate, model.ToDate, model.Duration, holidays);
+            if (leaveDays <= 0m)
+            {
+                TempData["Error"] = "The selected dates contain no working leave days.";
+                return RedirectToAction("MyLeaves");
+            }
 
-            _db.EmployeeLeaves.Add(model);
-            await _db.SaveChangesAsync();
+            var executionStrategy = _db.Database.CreateExecutionStrategy();
+            return await executionStrategy.ExecuteAsync<IActionResult>(async () =>
+            {
+                await using var transaction = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
 
-            TempData["Success"] = "Leave applied successfully.";
-            return RedirectToAction("ApplyLeave");
+                if (annualLeaveType is "Casual Leave" or "Sick Leave" or "Earned Leave" or "Bonus Leave" && model.FromDate.Year >= 2027)
+                {
+                    if (policy == null)
+                    {
+                        await transaction.RollbackAsync();
+                        TempData["Error"] = "The annual leave policy is not configured for this year.";
+                        return RedirectToAction("MyLeaves");
+                    }
+
+                    var balance = await _leavePolicyService.GetOrCreateBalanceAsync(employee, model.FromDate.Year, annualLeaveType);
+                    if (balance == null || await _leavePolicyService.GetAvailableBalanceAsync(balance) < leaveDays)
+                    {
+                        await transaction.RollbackAsync();
+                        TempData["Error"] = "Insufficient available leave balance.";
+                        return RedirectToAction("MyLeaves");
+                    }
+                }
+
+                bool overlappingLeave = await HasOverlappingLeaveAsync(employee.Id, model.FromDate, model.ToDate);
+                if (overlappingLeave)
+                {
+                    await transaction.RollbackAsync();
+                    TempData["Error"] = "You already have leave applied for these dates.";
+                    return RedirectToAction("MyLeaves");
+                }
+
+                model.EmployeeId = employee.Id;
+                model.Status = "Pending";
+                model.AppliedOn = DateTime.Now;
+
+                _db.EmployeeLeaves.Add(model);
+                await _db.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                TempData["Success"] = "Leave applied successfully.";
+                return RedirectToAction("MyLeaves");
+            });
         }
 
+        [AuthorizeAdminOrHR]
         public async Task<IActionResult> LeaveManagement(int? employeeId, string? status, DateTime? fromDate, DateTime? toDate)
         {
             var leavesQuery = _db.EmployeeLeaves
@@ -786,6 +1188,19 @@ namespace SquadInternal.Controllers
             ViewBag.PendingCount = baseLeaves.Count(l => l.Status == "Pending");
             ViewBag.RejectedCount = baseLeaves.Count(l => l.Status == "Rejected");
 
+            var leaveCalendar = await _db.SquadHolidays
+                .Where(h => h.IsActive)
+                .Select(h => new { h.HolidayDate, h.IsHalfDay })
+                .ToListAsync();
+            var holidayMap = leaveCalendar
+                .GroupBy(h => h.HolidayDate.Date)
+                .ToDictionary(group => group.Key, group => group.All(h => h.IsHalfDay));
+            ViewBag.TotalRequestedDays = baseLeaves.Sum(l =>
+                LeaveDayCalculator.Calculate(l.FromDate, l.ToDate, l.Duration, holidayMap));
+            ViewBag.ApprovedDays = baseLeaves
+                .Where(l => l.Status == "Approved")
+                .Sum(l => LeaveDayCalculator.Calculate(l.FromDate, l.ToDate, l.Duration, holidayMap));
+
             var leaves = string.IsNullOrWhiteSpace(status)
                 ? baseLeaves
                 : baseLeaves.Where(l => l.Status == status).ToList();
@@ -810,6 +1225,69 @@ namespace SquadInternal.Controllers
 
 
             return View(leaves);
+        }
+
+        [AuthorizeAdminOrHR]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CancelApprovedLeave(int id, string reason)
+        {
+            if (string.IsNullOrWhiteSpace(reason))
+            {
+                TempData["Error"] = "A cancellation reason is required.";
+                return RedirectToAction(nameof(LeaveManagement));
+            }
+
+            var executionStrategy = _db.Database.CreateExecutionStrategy();
+            return await executionStrategy.ExecuteAsync<IActionResult>(async () =>
+            {
+                await using var transaction = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+                var leave = await _db.EmployeeLeaves.FirstOrDefaultAsync(item => item.Id == id);
+                if (leave == null || leave.Status != "Approved")
+                {
+                    await transaction.RollbackAsync();
+                    TempData["Error"] = "Only approved leave can be cancelled through this workflow.";
+                    return RedirectToAction(nameof(LeaveManagement));
+                }
+
+                var leaveType = AnnualLeavePolicyService.NormalizeAnnualLeaveType(leave.LeaveType);
+                if (leaveType != null && leave.FromDate.Year == leave.ToDate.Year && leave.FromDate.Year >= 2027)
+                {
+                    var debitKey = $"leave-approval:{leave.Id}";
+                    var debit = await _db.LeaveBalanceTransactions.FirstOrDefaultAsync(item => item.IdempotencyKey == debitKey);
+                    var balance = await _db.EmployeeLeaveBalances.FirstOrDefaultAsync(item =>
+                        item.EmployeeId == leave.EmployeeId && item.LeaveYear == leave.FromDate.Year && item.LeaveType == leaveType);
+                    if (debit != null && balance != null &&
+                        !await _db.LeaveBalanceTransactions.AnyAsync(item => item.IdempotencyKey == $"leave-cancellation:{leave.Id}"))
+                    {
+                        balance.ApprovedConsumption = Math.Max(0m, balance.ApprovedConsumption + debit.Days);
+                        balance.ClosingBalance -= debit.Days;
+                        balance.UpdatedOn = DateTime.UtcNow;
+                        _db.LeaveBalanceTransactions.Add(new LeaveBalanceTransaction
+                        {
+                            EmployeeId = leave.EmployeeId,
+                            LeaveYear = leave.FromDate.Year,
+                            LeaveType = leaveType,
+                            TransactionType = "CancellationReversal",
+                            Days = -debit.Days,
+                            EmployeeLeaveId = leave.Id,
+                            CreatedByUserId = HttpContext.Session.GetInt32("UserId"),
+                            CreatedOn = DateTime.UtcNow,
+                            IdempotencyKey = $"leave-cancellation:{leave.Id}",
+                            Reason = reason.Trim()
+                        });
+                    }
+                }
+
+                leave.Status = "Cancelled";
+                leave.CancelledByUserId = HttpContext.Session.GetInt32("UserId");
+                leave.CancelledOn = DateTime.UtcNow;
+                leave.CancellationReason = reason.Trim();
+                await _db.SaveChangesAsync();
+                await transaction.CommitAsync();
+                TempData["Success"] = "Approved leave cancelled and the balance ledger updated.";
+                return RedirectToAction(nameof(LeaveManagement));
+            });
         }
 
         [AuthorizeAdmin]
@@ -840,9 +1318,9 @@ namespace SquadInternal.Controllers
             if (userId == null)
                 return RedirectToAction("Login", "Account");
 
-            if (model.ToDate < model.FromDate)
+            if (model.ToDate < model.FromDate || model.FromDate.Date < DateTime.Today)
             {
-                TempData["Error"] = "To Date cannot be earlier than From Date.";
+                TempData["Error"] = "Use valid dates. Leave cannot be applied for past dates.";
                 return RedirectToAction("LeaveManagement");
             }
 
@@ -852,30 +1330,94 @@ namespace SquadInternal.Controllers
             if (employee == null)
                 return Content("Employee record not found.");
 
-            bool overlappingLeave = await _db.EmployeeLeaves
-                .AnyAsync(l =>
-                    l.EmployeeId == employee.Id &&
-                    l.Status != "Rejected" &&
-                    l.Status != "Cancelled" &&
-                    model.FromDate.Date <= l.ToDate.Date &&
-                    model.ToDate.Date >= l.FromDate.Date
-                );
-
-            if (overlappingLeave)
+            if (model.Duration is not ("Full Day" or "First Half" or "Second Half") ||
+                (model.Duration != "Full Day" && model.FromDate.Date != model.ToDate.Date) ||
+                string.IsNullOrWhiteSpace(model.Reason))
             {
-                TempData["Error"] = "You already have leave applied for these dates.";
+                TempData["Error"] = "Select a valid duration and provide a reason. Half-day requests must cover one date.";
                 return RedirectToAction("LeaveManagement");
             }
 
-            model.EmployeeId = employee.Id;
-            model.Status = "Approved";  // Admin auto approve
-            model.AppliedOn = DateTime.Now;
+            var annualLeaveType = AnnualLeavePolicyService.NormalizeAnnualLeaveType(model.LeaveType);
+            var policy = await _leavePolicyService.GetPolicyAsync(model.FromDate.Year);
+            if ((annualLeaveType == "Earned Leave" && model.FromDate.Year >= 2027 && (policy == null || !policy.EarnedLeaveEnabled)) ||
+                (annualLeaveType == "Bonus Leave" && model.FromDate.Year >= 2027 && (policy == null || !policy.BonusUsesSeparateCategory)) ||
+                (annualLeaveType != null && model.FromDate.Year >= 2027 && model.FromDate.Year != model.ToDate.Year))
+            {
+                TempData["Error"] = "This annual leave category is unavailable or the request crosses leave years.";
+                return RedirectToAction("LeaveManagement");
+            }
 
-            _db.EmployeeLeaves.Add(model);
-            await _db.SaveChangesAsync();
+            var holidays = await _leavePolicyService.GetHolidayMapAsync(model.FromDate, model.ToDate);
+            var leaveDays = LeaveDayCalculator.Calculate(model.FromDate, model.ToDate, model.Duration, holidays);
+            if (leaveDays <= 0m)
+            {
+                TempData["Error"] = "The selected dates contain no working leave days.";
+                return RedirectToAction("LeaveManagement");
+            }
 
-            TempData["Success"] = "Leave applied successfully.";
-            return RedirectToAction("LeaveManagement");
+            var executionStrategy = _db.Database.CreateExecutionStrategy();
+            return await executionStrategy.ExecuteAsync<IActionResult>(async () =>
+            {
+                await using var transaction = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+
+                if (annualLeaveType is "Casual Leave" or "Sick Leave" or "Earned Leave" or "Bonus Leave" && model.FromDate.Year >= 2027)
+                {
+                    if (policy == null)
+                    {
+                        await transaction.RollbackAsync();
+                        TempData["Error"] = "The annual leave policy is not configured for this year.";
+                        return RedirectToAction("LeaveManagement");
+                    }
+
+                    var balance = await _leavePolicyService.GetOrCreateBalanceAsync(employee, model.FromDate.Year, annualLeaveType);
+                    if (balance == null || await _leavePolicyService.GetAvailableBalanceAsync(balance) < leaveDays)
+                    {
+                        await transaction.RollbackAsync();
+                        TempData["Error"] = "Insufficient available leave balance.";
+                        return RedirectToAction("LeaveManagement");
+                    }
+                }
+
+                bool overlappingLeave = await _db.EmployeeLeaves
+                    .AnyAsync(l =>
+                        l.EmployeeId == employee.Id &&
+                        l.Status != "Rejected" &&
+                        l.Status != "Cancelled" &&
+                        model.FromDate.Date <= l.ToDate.Date &&
+                        model.ToDate.Date >= l.FromDate.Date
+                    );
+
+                if (overlappingLeave)
+                {
+                    await transaction.RollbackAsync();
+                    TempData["Error"] = "You already have leave applied for these dates.";
+                    return RedirectToAction("LeaveManagement");
+                }
+
+                model.EmployeeId = employee.Id;
+                model.Status = "Approved";
+                model.AppliedOn = DateTime.Now;
+                model.ApprovedByUserId = userId;
+                model.DecisionOn = DateTime.UtcNow;
+                model.Employee = employee;
+
+                _db.EmployeeLeaves.Add(model);
+                await _db.SaveChangesAsync();
+
+                if (annualLeaveType != null && model.FromDate.Year >= 2027 &&
+                    !await _leavePolicyService.RecordApprovalAsync(model, userId))
+                {
+                    await transaction.RollbackAsync();
+                    TempData["Error"] = "Insufficient available balance to approve this request.";
+                    return RedirectToAction("LeaveManagement");
+                }
+
+                await transaction.CommitAsync();
+
+                TempData["Success"] = "Leave applied successfully.";
+                return RedirectToAction("LeaveManagement");
+            });
         }
 
 
@@ -1411,12 +1953,16 @@ namespace SquadInternal.Controllers
         public AdminController(AppDbContext db,
                                PasswordService passwordService,
                                EmailService emailService,
-                               AzureBlobStorageService blobStorageService)
+                               AzureBlobStorageService blobStorageService,
+                               AnnualLeavePolicyService leavePolicyService,
+                               AnnualLeaveRolloverService rolloverService)
         {
             _db = db;
             _passwordService = passwordService;
             _emailService = emailService;
             _blobStorageService = blobStorageService;
+            _leavePolicyService = leavePolicyService;
+            _rolloverService = rolloverService;
         }
 
         // ================= EMPLOYEE DOCUMENTS (ADMIN ONLY) =================

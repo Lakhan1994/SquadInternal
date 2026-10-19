@@ -2,139 +2,362 @@
 @{
     ViewData["Title"] = "My Leaves";
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    var holidayMap = (IReadOnlyDictionary<DateTime, bool>)ViewBag.HolidayMap;
 }
 
-<div class="page-accent d-flex justify-content-between align-items-center">
-    <h3>My Leaves</h3>
+<style>
+    .leave-table thead th { position: sticky; top: 0; z-index: 1; font-size: .78rem; text-transform: uppercase; letter-spacing: .03em; }
+    .leave-table tbody tr { vertical-align: middle; }
+    .balance-low { color: #dc3545; font-weight: 600; }
+    .balance-ok  { color: #198754; font-weight: 600; }
+</style>
+
+<div class="page-accent d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+        <h3 class="mb-0"><i class="bi bi-calendar-check me-2"></i>My Leaves</h3>
+        <p class="text-muted small mb-0">Track your balances and view your leave history.</p>
+    </div>
     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#applyLeaveModal">
-        + Apply Leave
+        <i class="bi bi-plus-lg me-1"></i> Apply Leave
     </button>
 </div>
 
-<div class="card shadow-sm border-0 mt-3">
-    <div class="table-responsive">
-        <table class="table table-hover mb-0">
-            <thead class="table-light">
-                <tr>
-                    <th>Type</th>
-                    <th>From</th>
-                    <th>To</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var leave in Model)
-                {
-                    string badgeClass = leave.Status == "Approved" ? "bg-success"
-                    : leave.Status == "Pending" ? "bg-warning text-dark"
-                    : leave.Status == "Cancelled" ? "bg-secondary"
-                    : "bg-danger";
-
-                    <tr>
-                        <td>@leave.LeaveType</td>
-                        <td>@leave.FromDate.ToString("dd MMM yyyy")</td>
-                        <td>@leave.ToDate.ToString("dd MMM yyyy")</td>
-                        <td>
-                            <span class="badge @badgeClass">
-                                @leave.Status
-                            </span>
-                        </td>
-                        <td>
-                            @if (leave.Status == "Pending")
-                            {
-                                <form asp-action="CancelLeave" method="post" class="d-inline">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="id" value="@leave.Id" />
-                                    <button type="submit" class="btn btn-sm btn-danger">
-                                        Backout
-                                    </button>
-                                </form>
-                            }
-                            else
-                            {
-                                <span class="text-muted">—</span>
-                            }
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+@* ---------- Balance cards ---------- *@
+<div class="row g-3">
+    <div class="col-6 col-lg-2">
+        <div class="card stat-card stat-card-blue shadow-sm p-3 h-100">
+            <div class="stat-label">Available CL</div>
+            <div class="stat-value fs-4">@(((decimal)ViewBag.CasualAvailable).ToString("0.##"))</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-2">
+        <div class="card stat-card stat-card-blue shadow-sm p-3 h-100">
+            <div class="stat-label">Available SL</div>
+            <div class="stat-value fs-4">@(((decimal)ViewBag.SickAvailable).ToString("0.##"))</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-2">
+        <div class="card stat-card stat-card-blue shadow-sm p-3 h-100">
+            <div class="stat-label">Available EL/PL</div>
+            <div class="stat-value fs-4">@(((decimal)ViewBag.EarnedAvailable).ToString("0.##"))</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-2">
+        <div class="card stat-card stat-card-blue shadow-sm p-3 h-100">
+            <div class="stat-label">Annual entitlement</div>
+            <div class="stat-value fs-4">@(((decimal)ViewBag.AnnualEntitlement).ToString("0.##"))</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-2">
+        <div class="card stat-card stat-card-blue shadow-sm p-3 h-100">
+            <div class="stat-label">Bonus leave</div>
+            <div class="stat-value fs-4">@(((decimal)ViewBag.BonusDays).ToString("0.##"))</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-2">
+        <div class="card stat-card stat-card-orange shadow-sm p-3 h-100">
+            <div class="stat-label">Pending requests</div>
+            <div class="stat-value fs-4">@ViewBag.PendingRequests</div>
+        </div>
     </div>
 </div>
 
-<!-- APPLY LEAVE MODAL -->
-<div class="modal fade" id="applyLeaveModal">
-    <div class="modal-dialog">
+@if (!(bool)ViewBag.PolicyActive)
+{
+    <div class="alert alert-secondary mt-3 mb-0 d-flex align-items-center">
+        <i class="bi bi-info-circle me-2"></i>
+        The annual leave policy is effective 1 January 2027. Historical-year balances are unchanged.
+    </div>
+}
+
+@* ---------- Leave history ---------- *@
+<div class="card border-0 shadow-sm mt-3">
+    @if (Model.Any())
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 leave-table">
+                <thead class="table-light">
+                    <tr>
+                        <th>Type</th>
+                        <th>From</th>
+                        <th>To</th>
+                        <th>Duration</th>
+                        <th class="text-end">Days</th>
+                        <th>Status</th>
+                        <th>Applied</th>
+                        <th>Approval</th>
+                        <th class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var leave in Model)
+                    {
+                        string badgeClass = leave.Status switch
+                        {
+                            "Approved" => "bg-success",
+                            "Pending" => "bg-warning text-dark",
+                            "Cancelled" => "bg-secondary",
+                            _ => "bg-danger"
+                        };
+                        string statusIcon = leave.Status switch
+                        {
+                            "Approved" => "bi-check-circle-fill",
+                            "Pending" => "bi-hourglass-split",
+                            "Cancelled" => "bi-x-circle",
+                            _ => "bi-exclamation-circle"
+                        };
+                        var dayCount = SquadInternal.Services.LeaveDayCalculator
+                            .Calculate(leave.FromDate, leave.ToDate, leave.Duration, holidayMap);
+
+                        <tr>
+                            <td class="fw-medium">@leave.LeaveType</td>
+                            <td>@leave.FromDate.ToString("dd MMM yyyy")</td>
+                            <td>@leave.ToDate.ToString("dd MMM yyyy")</td>
+                            <td><span class="badge bg-light text-dark border">@leave.Duration</span></td>
+                            <td class="text-end">@dayCount.ToString("0.##")</td>
+                            <td>
+                                <span class="badge @badgeClass">
+                                    <i class="bi @statusIcon me-1"></i>@leave.Status
+                                </span>
+                            </td>
+                            <td class="text-muted small">@leave.AppliedOn.ToString("dd MMM yyyy")</td>
+                            <td>@(leave.ApprovedByUser?.Name ?? "—")</td>
+                            <td class="text-end">
+                                @if (leave.Status == "Pending")
+                                {
+                                    <form asp-action="CancelLeave" method="post" class="d-inline"
+                                          onsubmit="return confirm('Backout this leave request?');">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@leave.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-arrow-counterclockwise me-1"></i>Backout
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="empty-state py-5">
+            <i class="bi bi-calendar-x fs-1 text-muted d-block mb-2"></i>
+            <h6 class="mb-1">No leave requests yet</h6>
+            <p class="text-muted small mb-3">When you apply for leave, it will appear here.</p>
+            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#applyLeaveModal">
+                <i class="bi bi-plus-lg me-1"></i> Apply Leave
+            </button>
+        </div>
+    }
+</div>
+
+@* ---------- Apply leave modal ---------- *@
+<div class="modal fade" id="applyLeaveModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <form id="leaveForm" method="post">
+            <form id="leaveForm" method="post" autocomplete="off" novalidate>
                 @Html.AntiForgeryToken()
 
                 <div class="modal-header">
-                    <h5 class="modal-title">Apply Leave</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <h5 class="modal-title"><i class="bi bi-calendar-plus me-2"></i>Apply Leave</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
 
                 <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="leaveType" class="form-label fw-medium">Leave Type</label>
+                        <select id="leaveType" name="LeaveType" class="form-select" required>
+                            <option value="Sick Leave" data-balance="@ViewBag.SickAvailable">Sick Leave (SL)</option>
+                            <option value="Casual Leave" data-balance="@ViewBag.CasualAvailable">Casual Leave (CL)</option>
+                            @if ((bool)ViewBag.EarnedLeaveEnabled)
+                            {
+                                <option value="Earned Leave" data-balance="@ViewBag.EarnedAvailable">Earned Leave (EL/PL)</option>
+                                <option value="Privilege Leave" data-balance="@ViewBag.EarnedAvailable">Privilege Leave (EL/PL)</option>
+                            }
+                            else
+                            {
+                                <option value="Earned Leave" disabled>Earned Leave (not configured)</option>
+                                <option value="Privilege Leave" disabled>Privilege Leave (not configured)</option>
+                            }
+                            @if ((bool)ViewBag.SeparateBonusCategory)
+                            {
+                                <option value="Bonus Leave" data-balance="@ViewBag.BonusDays">Bonus Leave</option>
+                            }
+                            <option value="Paternity Leave">Paternity Leave</option>
+                            <option value="Maternity Leave">Maternity Leave</option>
+                        </select>
+                        <div class="form-text">
+                            Available balance: <span id="availableLeaveBalance" class="fw-semibold">—</span>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-12 col-sm-6">
+                            <label for="fromDate" class="form-label fw-medium">From Date</label>
+                            <input id="fromDate" type="date" name="FromDate" class="form-control"
+                                   min="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+                        </div>
+                        <div class="col-12 col-sm-6">
+                            <label for="toDate" class="form-label fw-medium">To Date</label>
+                            <input id="toDate" type="date" name="ToDate" class="form-control"
+                                   min="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+                        </div>
+                    </div>
 
                     <div class="mb-3">
-                        <label>Leave Type</label>
-                        <select name="LeaveType" class="form-control">
-                            <option>Sick Leave</option>
-                            <option>Casual Leave</option>
-                            <option>Half Day</option>
-                            <option>Paternity Leave</option>
-                            <option>Maternity Leave</option>
+                        <label for="leaveDuration" class="form-label fw-medium">Duration</label>
+                        <select id="leaveDuration" name="Duration" class="form-select" required>
+                            <option>Full Day</option>
+                            <option value="First Half" disabled>First Half (single day only)</option>
+                            <option value="Second Half" disabled>Second Half (single day only)</option>
                         </select>
                     </div>
 
                     <div class="mb-3">
-                        <label>From Date</label>
-                        <input type="date" name="FromDate" class="form-control" required />
+                        <label class="form-label fw-medium">Working days requested</label>
+                        <div class="form-control bg-light d-flex align-items-center justify-content-between">
+                            <span id="leaveDayCount" aria-live="polite" class="fw-bold">0</span>
+                            <small id="balanceWarning" class="text-danger d-none">
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i>Exceeds available balance
+                            </small>
+                        </div>
+                        <small id="noWorkingDaysWarning" class="text-danger d-none" role="alert">
+                            Choose at least one weekday that is not a full-day holiday.
+                        </small>
                     </div>
 
-                    <div class="mb-3">
-                        <label>To Date</label>
-                        <input type="date" name="ToDate" class="form-control" required />
+                    <div class="mb-1">
+                        <label for="reason" class="form-label fw-medium">Reason</label>
+                        <textarea id="reason" name="Reason" class="form-control" rows="3" required
+                                  placeholder="Briefly describe the reason for your leave..."></textarea>
                     </div>
-
-                    <div class="mb-3">
-                        <label>Reason</label>
-                        <textarea name="Reason" class="form-control" required></textarea>
-                    </div>
-
                 </div>
 
                 <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-primary">
-                        Apply
+                        <i class="bi bi-send me-1"></i>Submit Request
                     </button>
                 </div>
-
             </form>
         </div>
     </div>
 </div>
 
 <script>
-    document.getElementById("leaveForm").addEventListener("submit", async function (e) {
-        this.querySelector("button[type='submit']").disabled = true;
-        e.preventDefault();
+    (function () {
+        const holidayCalendar = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+                        (Dictionary<string, bool>)ViewBag.HolidayCalendar));
 
-        const formData = new FormData(this);
+        const form         = document.getElementById("leaveForm");
+        if (!form) return;
 
-        const response = await fetch("/Employee/ApplyLeave", {
-            method: "POST",
-            body: formData
+        const fromInput    = form.elements["FromDate"];
+        const toInput      = form.elements["ToDate"];
+        const durationInput= form.elements["Duration"];
+        const leaveType    = form.elements["LeaveType"];
+        const balanceLabel = document.getElementById("availableLeaveBalance");
+        const dayCountEl   = document.getElementById("leaveDayCount");
+        const warningEl    = document.getElementById("balanceWarning");
+        const noWorkingDaysWarning = document.getElementById("noWorkingDaysWarning");
+        const submitButton = form.querySelector("button[type='submit']");
+        const halfDayOpts  = [...durationInput.options].filter(o => o.value !== "Full Day");
+
+        function parseDate(v) { return new Date(v + "T00:00:00"); }
+        function fmt(d) {
+            const m = String(d.getMonth() + 1).padStart(2, "0");
+            const day = String(d.getDate()).padStart(2, "0");
+            return `${d.getFullYear()}-${m}-${day}`;
+        }
+
+        function currentBalance() {
+            const opt = leaveType.selectedOptions[0];
+            const raw = opt?.dataset?.balance;
+            return raw !== undefined && raw !== "" ? parseFloat(raw) : null;
+        }
+
+        function updateEstimate() {
+            // Balance label
+            const bal = currentBalance();
+            balanceLabel.textContent = bal !== null ? `${bal} day${bal === 1 ? "" : "s"}` : "Managed under existing policy";
+
+            // Half-day availability
+            const singleDay = fromInput.value && fromInput.value === toInput.value;
+            halfDayOpts.forEach(o => o.disabled = !singleDay);
+            if (!singleDay && durationInput.value !== "Full Day") durationInput.value = "Full Day";
+
+            // Day count
+            if (!fromInput.value || !toInput.value || toInput.value < fromInput.value) {
+                dayCountEl.textContent = "0";
+                warningEl.classList.add("d-none");
+                noWorkingDaysWarning.classList.add("d-none");
+                submitButton.disabled = false;
+                return;
+            }
+
+            let days = 0;
+            const cur = parseDate(fromInput.value);
+            const end = parseDate(toInput.value);
+            while (cur <= end) {
+                const key = fmt(cur);
+                const weekday = cur.getDay();
+                if (Object.hasOwn(holidayCalendar, key)) {
+                    if (holidayCalendar[key]) days += 0.5;
+                } else if (weekday !== 0 && weekday !== 6) {
+                    days += 1;
+                }
+                cur.setDate(cur.getDate() + 1);
+            }
+            if (durationInput.value !== "Full Day" && days > 0) days = 0.5;
+
+            dayCountEl.textContent = days.toString();
+            dayCountEl.classList.toggle("balance-low", bal !== null && days > bal);
+            dayCountEl.classList.toggle("balance-ok",  bal !== null && days > 0 && days <= bal);
+            warningEl.classList.toggle("d-none", !(bal !== null && days > bal));
+            noWorkingDaysWarning.classList.toggle("d-none", days > 0);
+            submitButton.disabled = days <= 0;
+        }
+
+        [fromInput, toInput, durationInput, leaveType].forEach(el =>
+            el.addEventListener("change", updateEstimate));
+
+        form.addEventListener("submit", async function (e) {
+            e.preventDefault();
+            if (!form.checkValidity()) { form.reportValidity(); return; }
+
+            const btn = form.querySelector("button[type='submit']");
+            const original = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>Submitting…`;
+
+            try {
+                const res = await fetch("/Employee/ApplyLeave", {
+                    method: "POST",
+                    body: new FormData(form)
+                });
+                const result = await res.json();
+
+                if (!result.success) {
+                    toastr.error(result.message);
+                } else {
+                    toastr.success(result.message);
+                    setTimeout(() => location.reload(), 1200);
+                }
+            } catch {
+                toastr.error("Unable to submit the leave request. Please try again.");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = original;
+            }
         });
 
-        const result = await response.json();
-
-        if (!result.success) {
-            toastr.error(result.message);   
-        } else {
-            toastr.success(result.message);
-            setTimeout(() => location.reload(), 1500);
-        }
-    });
+        updateEstimate();
+    })();
 </script>

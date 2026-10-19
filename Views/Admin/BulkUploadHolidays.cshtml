@@ -4,7 +4,7 @@
 }
 
 <div class="page-accent d-flex justify-content-between align-items-center">
-    <h3 class="m-0">📂 Bulk Upload Holidays</h3>
+    <h3 class="m-0"><i class="bi bi-upload me-2" aria-hidden="true"></i>Bulk Upload Holidays</h3>
 </div>
 
 <div class="card shadow-sm border-0 p-4 mt-3">
@@ -35,10 +35,11 @@
         <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
         <div class="mb-3">
-            <label class="form-label fw-semibold">
+            <label for="holidayFile" class="form-label fw-semibold">
                 Select Excel File (.xlsx)
             </label>
             <input type="file"
+                     id="holidayFile"
                    name="file"
                    class="form-control"
                    accept=".xlsx,.xls"

@@ -43,6 +43,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 // Password hashing service
 builder.Services.AddScoped<PasswordService>();
+builder.Services.AddScoped<AnnualLeavePolicyService>();
+builder.Services.AddScoped<AnnualLeaveRolloverService>();
 
 // Session
 builder.Services.AddDistributedMemoryCache();
@@ -58,6 +60,9 @@ builder.Services.AddSession(options =>
 builder.Services.AddAuthentication();
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddSingleton<AzureBlobStorageService>();
+
+if (builder.Environment.IsProduction() && builder.Configuration.GetValue<bool>("AnnualLeave:AutomaticRolloverEnabled"))
+    builder.Services.AddHostedService<AnnualLeaveRolloverWorker>();
 
 
 var app = builder.Build();

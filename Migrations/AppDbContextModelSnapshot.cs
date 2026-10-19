@@ -22,6 +22,136 @@ namespace SquadInternal.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("SquadInternal.Models.AnnualLeavePolicy", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("BonusConversionRate")
+                        .HasColumnType("decimal(9,2)");
+
+                    b.Property<int?>("BonusExpirationMonths")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("BonusMaxDaysPerEmployeeYear")
+                        .HasColumnType("decimal(9,2)");
+
+                    b.Property<decimal?>("BonusMaxEligibleUnusedDays")
+                        .HasColumnType("decimal(9,2)");
+
+                    b.Property<bool>("BonusRequiresApproval")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("BonusUsesSeparateCategory")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("BusinessTimeZoneId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("CarryForwardUnusedLeave")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("CasualLeaveBonusEligible")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal>("CasualLeaveDays")
+                        .HasColumnType("decimal(9,2)");
+
+                    b.Property<string>("ChangeReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<decimal>("EarnedLeaveDays")
+                        .HasColumnType("decimal(9,2)");
+
+                    b.Property<bool>("EarnedLeaveEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("EffectiveFrom")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("ProrateNewJoiners")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("SickLeaveBonusEligible")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal>("SickLeaveDays")
+                        .HasColumnType("decimal(9,2)");
+
+                    b.Property<int?>("UpdatedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedOn")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EffectiveFrom")
+                        .IsUnique();
+
+                    b.ToTable("AnnualLeavePolicies");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            BonusConversionRate = 1m,
+                            BonusRequiresApproval = false,
+                            BonusUsesSeparateCategory = false,
+                            BusinessTimeZoneId = "UTC",
+                            CarryForwardUnusedLeave = false,
+                            CasualLeaveBonusEligible = false,
+                            CasualLeaveDays = 3m,
+                            ChangeReason = "Initial policy; unused leave bonus rules are not configured.",
+                            EarnedLeaveDays = 6m,
+                            EarnedLeaveEnabled = true,
+                            EffectiveFrom = new DateTime(2027, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            ProrateNewJoiners = true,
+                            SickLeaveBonusEligible = false,
+                            SickLeaveDays = 3m,
+                            UpdatedOn = new DateTime(2026, 10, 17, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        });
+                });
+
+            modelBuilder.Entity("SquadInternal.Models.AnnualLeavePolicyAudit", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("AnnualLeavePolicyId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ChangedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ChangedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("SnapshotJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AnnualLeavePolicyId", "ChangedOn");
+
+                    b.ToTable("AnnualLeavePolicyAudits");
+                });
+
             modelBuilder.Entity("SquadInternal.Models.Asset", b =>
                 {
                     b.Property<int>("Id")
@@ -423,6 +553,24 @@ namespace SquadInternal.Migrations
                     b.Property<int?>("ApprovedByUserId")
                         .HasColumnType("int");
 
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int?>("CancelledByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("CancelledOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DecisionOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Duration")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.Property<int>("EmployeeId")
                         .HasColumnType("int");
 
@@ -435,6 +583,10 @@ namespace SquadInternal.Migrations
                         .HasColumnType("nvarchar(30)");
 
                     b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("RejectionReason")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
@@ -453,6 +605,159 @@ namespace SquadInternal.Migrations
                     b.HasIndex("EmployeeId");
 
                     b.ToTable("EmployeeLeaves");
+                });
+
+            modelBuilder.Entity("SquadInternal.Models.EmployeeLeaveBalance", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Adjustments")
+                        .HasColumnType("decimal(9,2)");
+
+                    b.Property<decimal>("AnnualEntitlement")
+                        .HasColumnType("decimal(9,2)");
+
+                    b.Property<decimal>("ApprovedConsumption")
+                        .HasColumnType("decimal(9,2)");
+
+                    b.Property<decimal>("BonusCredits")
+                        .HasColumnType("decimal(9,2)");
+
+                    b.Property<decimal>("ClosingBalance")
+                        .HasColumnType("decimal(9,2)");
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("EmployeeId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("ExpiredBalance")
+                        .HasColumnType("decimal(9,2)");
+
+                    b.Property<string>("LeaveType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("LeaveYear")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("OpeningBalance")
+                        .HasColumnType("decimal(9,2)");
+
+                    b.Property<decimal>("ProratedEntitlement")
+                        .HasColumnType("decimal(9,2)");
+
+                    b.Property<DateTime>("UpdatedOn")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmployeeId", "LeaveYear", "LeaveType")
+                        .IsUnique();
+
+                    b.ToTable("EmployeeLeaveBalances");
+                });
+
+            modelBuilder.Entity("SquadInternal.Models.LeaveBalanceTransaction", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<int?>("CreatedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("Days")
+                        .HasColumnType("decimal(9,2)");
+
+                    b.Property<int>("EmployeeId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("EmployeeLeaveId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ExpiresOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<string>("LeaveType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<int>("LeaveYear")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("TransactionType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmployeeLeaveId");
+
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique();
+
+                    b.HasIndex("EmployeeId", "LeaveYear", "LeaveType");
+
+                    b.ToTable("LeaveBalanceTransactions");
+                });
+
+            modelBuilder.Entity("SquadInternal.Models.LeaveRolloverExecution", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("CompletedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<int>("LeaveYear")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("StartedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("StartedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LeaveYear")
+                        .IsUnique();
+
+                    b.ToTable("LeaveRolloverExecutions");
                 });
 
             modelBuilder.Entity("SquadInternal.Models.Role", b =>
@@ -577,6 +882,17 @@ namespace SquadInternal.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("SquadInternal.Models.AnnualLeavePolicyAudit", b =>
+                {
+                    b.HasOne("SquadInternal.Models.AnnualLeavePolicy", "Policy")
+                        .WithMany()
+                        .HasForeignKey("AnnualLeavePolicyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Policy");
+                });
+
             modelBuilder.Entity("SquadInternal.Models.Asset", b =>
                 {
                     b.HasOne("SquadInternal.Models.AssetCategory", "AssetCategory")
@@ -687,6 +1003,35 @@ namespace SquadInternal.Migrations
                     b.Navigation("ApprovedByUser");
 
                     b.Navigation("Employee");
+                });
+
+            modelBuilder.Entity("SquadInternal.Models.EmployeeLeaveBalance", b =>
+                {
+                    b.HasOne("SquadInternal.Models.Employee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Employee");
+                });
+
+            modelBuilder.Entity("SquadInternal.Models.LeaveBalanceTransaction", b =>
+                {
+                    b.HasOne("SquadInternal.Models.Employee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SquadInternal.Models.EmployeeLeave", "EmployeeLeave")
+                        .WithMany()
+                        .HasForeignKey("EmployeeLeaveId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Employee");
+
+                    b.Navigation("EmployeeLeave");
                 });
 
             modelBuilder.Entity("SquadInternal.Models.User", b =>

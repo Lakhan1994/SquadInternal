@@ -9,8 +9,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@ViewData["Title"] · Squad Logic</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
     <style>
             * {
                 margin: 0;
@@ -396,93 +397,293 @@
                 }
             }
     </style>
+    <style>
+        :root {
+            color-scheme: light;
+            --auth-ink: var(--brand-primary);
+            --auth-ink-deep: var(--brand-primary-deep);
+            --auth-accent: var(--brand-accent);
+            --auth-text: var(--brand-text);
+            --auth-muted: var(--brand-muted);
+            --auth-line: var(--brand-border);
+            --auth-surface: var(--brand-surface);
+        }
+
+        body {
+            min-height: 100svh;
+            padding: 32px;
+            background: var(--brand-page);
+            color: var(--auth-text);
+            font-family: 'DM Sans', 'Segoe UI', sans-serif;
+        }
+
+        .auth-page { width: 100%; max-width: 1080px; }
+        .auth-shell {
+            display: grid;
+            grid-template-columns: minmax(0, .92fr) minmax(0, 1.08fr);
+            min-height: 620px;
+            overflow: hidden;
+            border: 1px solid rgba(16, 45, 42, .08);
+            border-radius: 8px;
+            background: var(--auth-surface);
+            box-shadow: 0 24px 70px rgba(23, 59, 55, .12);
+        }
+
+        .auth-brand-panel {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-width: 0;
+            padding: 46px 42px 32px;
+            overflow: hidden;
+            color: #fff;
+            background-color: var(--auth-ink);
+            background-image: linear-gradient(rgba(255,255,255,.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.045) 1px, transparent 1px);
+            background-size: 42px 42px;
+        }
+
+        .auth-brand-panel::after {
+            position: absolute;
+            right: -100px;
+            bottom: 92px;
+            width: 300px;
+            height: 1px;
+            content: '';
+            background: rgba(130, 188, 245, .7);
+            transform: rotate(-45deg);
+        }
+
+        .auth-logo { display: block; width: min(100%, 330px); height: auto; }
+        .auth-brand-copy { position: relative; z-index: 1; margin: auto 0; padding: 62px 0; }
+        .auth-eyebrow {
+            margin: 0 0 16px;
+            color: var(--auth-accent);
+            font-size: .72rem;
+            font-weight: 700;
+            letter-spacing: .16em;
+            text-transform: uppercase;
+        }
+        .auth-brand-copy h1 {
+            max-width: 390px;
+            margin: 0;
+            color: #fff;
+            font-family: 'DM Serif Display', Georgia, serif;
+            font-size: clamp(2.25rem, 4vw, 3.35rem);
+            font-weight: 400;
+            line-height: 1.08;
+        }
+        .auth-brand-rule { display: block; width: 52px; height: 4px; margin-top: 28px; background: var(--auth-accent); }
+        .auth-brand-footer {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: rgba(255,255,255,.72);
+            font-size: .75rem;
+            font-weight: 600;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+        }
+        .auth-brand-footer span { width: 7px; height: 7px; border-radius: 50%; background: var(--auth-accent); }
+
+        .auth-main {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 0;
+            padding: 56px clamp(28px, 7vw, 82px);
+        }
+        .auth-form-wrap { width: 100%; max-width: 390px; }
+        .auth-heading { margin-bottom: 34px; }
+        .auth-heading .auth-eyebrow { margin-bottom: 10px; color: #2865a3; }
+        .auth-heading h2 {
+            margin: 0 0 8px;
+            color: var(--auth-ink-deep);
+            font-family: 'DM Serif Display', Georgia, serif;
+            font-size: 2.35rem;
+            font-weight: 400;
+            line-height: 1.15;
+        }
+        .auth-heading p { margin: 0; color: var(--auth-muted); font-size: .95rem; }
+        .auth-field { margin-bottom: 21px; }
+        .auth-label { display: block; margin-bottom: 8px; color: #314541; font-size: .84rem; font-weight: 700; }
+        .auth-input-wrap { position: relative; }
+        .auth-input {
+            display: block;
+            width: 100%;
+            min-height: 50px;
+            padding: 12px 14px;
+            border: 1px solid var(--auth-line);
+            border-radius: 5px;
+            outline: 0;
+            background: #fff;
+            color: var(--auth-text);
+            font: inherit;
+            font-size: .93rem;
+            transition: border-color .18s ease, box-shadow .18s ease;
+        }
+        .auth-input::placeholder { color: #9aa6a1; }
+        .auth-input:focus { border-color: #4b83c2; box-shadow: 0 0 0 3px rgba(75, 131, 194, .14); }
+        .auth-input.is-invalid { border-color: #bc4b4b; background: #fffafa; }
+        .auth-password-input { padding-right: 52px; }
+        .auth-password-toggle {
+            position: absolute;
+            top: 50%;
+            right: 8px;
+            display: inline-grid;
+            width: 36px;
+            height: 36px;
+            place-items: center;
+            border: 0;
+            border-radius: 4px;
+            background: transparent;
+            color: #687772;
+            cursor: pointer;
+            transform: translateY(-50%);
+        }
+        .auth-password-toggle:hover { background: #edf3fa; color: var(--auth-ink); }
+        .auth-password-toggle:focus-visible, .auth-submit:focus-visible, .auth-forgot:focus-visible {
+            outline: 3px solid rgba(75, 131, 194, .35);
+            outline-offset: 2px;
+        }
+        .invalid-feedback { margin: 6px 2px 0; color: #a83232; font-size: .78rem; }
+        .auth-options { display: flex; justify-content: flex-end; margin: -5px 0 25px; }
+        .auth-forgot { color: #285f98; font-size: .84rem; font-weight: 700; text-decoration: none; }
+        .auth-forgot:hover { color: var(--auth-ink-deep); text-decoration: underline; }
+        .auth-submit {
+            display: flex;
+            width: 100%;
+            min-height: 51px;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            border: 0;
+            border-radius: 5px;
+            background: var(--auth-ink);
+            color: #fff;
+            font: inherit;
+            font-size: .94rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background .18s ease, transform .18s ease;
+        }
+        .auth-submit:hover { background: #205f9f; transform: translateY(-1px); }
+        .auth-submit i { color: var(--auth-accent); }
+        .auth-footer { margin: 34px 0 0; color: #89938f; font-size: .75rem; text-align: center; }
+        .alert-box {
+            display: block;
+            margin: -14px 0 22px;
+            padding: 11px 13px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            font-size: .84rem;
+        }
+        .alert-box.error { border-color: #f0caca; background: #fff3f2; color: #982f2f; }
+        .alert-box.success { border-color: #c9e2d0; background: #eff8f1; color: #27603a; }
+
+        @@media (max-width: 760px) {
+            body { align-items: flex-start; padding: 18px; }
+            .auth-shell { grid-template-columns: 1fr; min-height: 0; }
+            .auth-brand-panel { min-height: 190px; padding: 26px 28px 20px; }
+            .auth-logo { width: min(100%, 245px); }
+            .auth-brand-copy { padding: 30px 0 24px; }
+            .auth-brand-copy h1 { max-width: 340px; font-size: 2rem; }
+            .auth-brand-copy .auth-eyebrow { margin-bottom: 9px; }
+            .auth-brand-rule { display: none; }
+            .auth-brand-footer { font-size: .68rem; }
+            .auth-main { padding: 40px clamp(24px, 7vw, 54px); }
+            .auth-heading { margin-bottom: 28px; }
+        }
+
+        @@media (max-width: 420px) {
+            body { padding: 10px; }
+            .auth-brand-panel { min-height: 164px; padding: 20px 20px 16px; }
+            .auth-logo { width: 215px; }
+            .auth-brand-copy { padding: 23px 0 18px; }
+            .auth-brand-copy h1 { font-size: 1.75rem; }
+            .auth-main { padding: 32px 20px; }
+            .auth-heading h2 { font-size: 2rem; }
+            .auth-heading { margin-bottom: 25px; }
+        }
+    </style>
 </head>
-<body>
+<body class="auth-document">
 
-    <div class="login-wrapper">
-        <div class="login-container">
-
-            <div class="left-panel">
-                <!-- Logo with brand -->
-                <div class="logo-container">
-                    <div class="logo-text">SQUAD LOGIC</div>
-                    <div class="logo-tagline">TREAT WITH <span>TECHNOLOGY</span></div>
+    <div class="auth-page">
+        <main class="auth-shell">
+            <section class="auth-brand-panel" aria-label="Squad Logic">
+                <img class="auth-logo" src="/images/company-logo.png" alt="Squad Logic, Treat with Technology" />
+                <div class="auth-brand-copy">
+                    <p class="auth-eyebrow">Squad Internal</p>
+                    <h1>People, connected.<br />Work, in motion.</h1>
+                    <span class="auth-brand-rule" aria-hidden="true"></span>
                 </div>
+                <div class="auth-brand-footer"><span aria-hidden="true"></span>Private team access</div>
+            </section>
 
-                <svg class="illustration" viewBox="0 0 300 140" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect x="20" y="15" width="260" height="110" rx="16" fill="#E8ECF4" />
-                    <circle cx="90" cy="70" r="28" fill="#6F7CFF" opacity="0.15" />
-                    <circle cx="90" cy="70" r="16" fill="#6F7CFF" opacity="0.4" />
-                    <rect x="135" y="50" width="80" height="8" rx="4" fill="#9AA6E0" />
-                    <rect x="135" y="66" width="60" height="8" rx="4" fill="#B8C3F0" />
-                    <rect x="135" y="82" width="70" height="8" rx="4" fill="#B8C3F0" />
-                    <circle cx="225" cy="68" r="20" fill="#D9E0F5" />
-                    <path d="M215 62 L235 62 L225 78 L215 62Z" fill="#6F7CFF" opacity="0.5" />
-                    <circle cx="245" cy="90" r="6" fill="#6F7CFF" opacity="0.3" />
-                    <circle cx="255" cy="100" r="4" fill="#6F7CFF" opacity="0.2" />
-                    <rect x="40" y="105" width="30" height="4" rx="2" fill="#6F7CFF" opacity="0.15" />
-                    <rect x="80" y="105" width="20" height="4" rx="2" fill="#6F7CFF" opacity="0.15" />
-                </svg>
-
-                <div class="watermark"></div>
-            </div>
-
-            <div class="right-panel">
-                <div class="login-card">
-
-                    <h5>Login Please</h5>
-                    <p class="secure-text">This is a secure system and you will need to provide your login details</p>
+            <section class="auth-main" aria-labelledby="loginHeading">
+                <div class="auth-form-wrap">
+                    <header class="auth-heading">
+                        <p class="auth-eyebrow">Account access</p>
+                        <h2 id="loginHeading">Welcome back</h2>
+                        <p>Sign in to continue to Squad Internal.</p>
+                    </header>
 
                     @if (ViewBag.Error != null)
                     {
-                        <div class="alert-box show error">@ViewBag.Error</div>
+                        <div class="alert-box show error" role="alert">@ViewBag.Error</div>
                     }
 
                     @if (ViewBag.Success != null)
                     {
-                        <div class="alert-box show success">@ViewBag.Success</div>
+                        <div class="alert-box show success" role="status">@ViewBag.Success</div>
                     }
 
                     <form asp-action="Login" asp-controller="Account" method="post" id="loginForm" novalidate>
                         @Html.AntiForgeryToken()
 
-                        <div class="form-group">
+                        <div class="auth-field">
+                            <label class="auth-label" for="emailInput">Work email</label>
                             <input type="email"
                                    name="Email"
                                    id="emailInput"
-                                   class="custom-input"
-                                   placeholder="ravi@squadlogic.net"
+                                   class="auth-input"
+                                   placeholder="you@company.com"
                                    value="@ViewBag.Email"
+                                   autocomplete="username"
                                    required />
                             <span class="invalid-feedback" id="emailError">Please enter a valid email address.</span>
                         </div>
 
-                        <div class="form-group">
+                        <div class="auth-field">
+                            <label class="auth-label" for="passwordInput">Password</label>
+                            <div class="auth-input-wrap">
                             <input type="password"
                                    name="Password"
                                    id="passwordInput"
-                                   class="custom-input"
-                                   placeholder="Password"
+                                   class="auth-input auth-password-input"
+                                   placeholder="Enter your password"
+                                   autocomplete="current-password"
                                    required />
-                            <button type="button" class="toggle-eye" id="toggleBtn" aria-label="Toggle password visibility">
+                            <button type="button" class="auth-password-toggle" id="toggleBtn" aria-label="Toggle password visibility">
                                 <i class="bi bi-eye" id="eyeIcon"></i>
                             </button>
+                            </div>
                             <span class="invalid-feedback" id="passwordError">Password must be at least 6 characters.</span>
                         </div>
 
-                        <div class="forgot-link">
-                            <a asp-action="ForgotPassword">Forgot password?</a>
+                        <div class="auth-options">
+                            <a class="auth-forgot" asp-action="ForgotPassword">Forgot password?</a>
                         </div>
 
-                        <button type="submit" class="btn-login">Sign in</button>
-
-                       
+                        <button type="submit" class="auth-submit">Sign in <i class="bi bi-arrow-right" aria-hidden="true"></i></button>
                     </form>
-
+                    <p class="auth-footer">© @DateTime.Now.Year Squad Logic</p>
                 </div>
-            </div>
-
-        </div>
+            </section>
+        </main>
     </div>
 
     <script>

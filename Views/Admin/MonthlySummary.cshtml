@@ -19,8 +19,8 @@
 <div class="card shadow-sm border-0 p-3 mt-3">
     <form method="get" class="row align-items-end g-2">
         <div class="col-md-3">
-            <label>Month</label>
-            <select name="month" class="form-control">
+            <label for="summaryMonth" class="form-label">Month</label>
+            <select id="summaryMonth" name="month" class="form-select">
                 @for (int m = 1; m <= 12; m++)
                 {
                     <option value="@m" selected="@(m == selectedMonth)">
@@ -30,8 +30,8 @@
             </select>
         </div>
         <div class="col-md-3">
-            <label>Year</label>
-            <select name="year" class="form-control">
+            <label for="summaryYear" class="form-label">Year</label>
+            <select id="summaryYear" name="year" class="form-select">
                 @for (int y = DateTime.Now.Year - 3; y <= DateTime.Now.Year + 1; y++)
                 {
                     <option value="@y" selected="@(y == selectedYear)">@y</option>
@@ -78,7 +78,7 @@
                 else
                 {
                     <tr>
-                        <td colspan="4" class="text-center">No data available.</td>
+                        <td colspan="4" class="empty-state">No data available.</td>
                     </tr>
                 }
             </tbody>

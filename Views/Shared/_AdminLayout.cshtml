@@ -6,7 +6,7 @@
 }
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
@@ -21,12 +21,12 @@
     @RenderSection("Styles", required: false)
 </head>
 
-<body>
+<body class="app-document">
 
     <div class="admin-shell">
 
         <!-- SIDEBAR TOGGLE BUTTON -->
-        <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle Menu">
+        <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">
             <i class="bi bi-list"></i>
         </button>
 
@@ -34,10 +34,10 @@
         <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
         <!-- LEFT SIDEBAR -->
-        <aside class="sidebar" id="sidebar">
+        <aside class="sidebar" id="sidebar" aria-label="Main navigation">
             <div class="logo-box">
-                <div style="text-align:center; width:100%; margin-bottom:30px;">
-                    <img src="~/images/login-banner.png" style="width:210px; max-width:100%;" alt="SquadInternal Logo" />
+                <div class="sidebar-brand">
+                    <img src="~/images/login-banner.png" alt="SquadInternal Logo" />
                 </div>
             </div>
 
@@ -57,13 +57,13 @@
 
             <!-- User info on sidebar (mobile friendly) -->
             <div class="d-flex align-items-center mb-3 pb-2 border-bottom border-white border-opacity-10 d-lg-none">
-                <div class="hero-avatar-initials bg-white text-primary d-flex align-items-center justify-content-center rounded-circle me-2" style="width:38px;height:38px;font-size:14px;font-weight:700;">
+                <div class="hero-avatar-initials sidebar-user-avatar bg-white text-primary d-flex align-items-center justify-content-center rounded-circle me-2">
                     @initials
                 </div>
                 <div>
-                    <div class="text-white fw-bold" style="font-size:0.9rem;">@userName</div>
-                    <div class="text-white-50" style="font-size:0.75rem;">
-                        @(roleId == 1 ? "Administrator" : "Employee")
+                    <div class="text-white fw-bold sidebar-user-name">@userName</div>
+                    <div class="text-white-50 sidebar-user-role">
+                        @(roleId == 1 ? "Administrator" : roleId == 3 ? "HR" : "Employee")
                     </div>
                 </div>
             </div>
@@ -71,7 +71,8 @@
             <ul class="nav flex-column pt-3">
                 <!-- Dashboard -->
                 <li class="nav-item mb-2">
-                    <a class="nav-link text-white @(currentAction == "Dashboard" ? "active-menu" : "")"
+                          <a class="nav-link text-white @(currentController == "Admin" && currentAction == "Dashboard" ? "active-menu" : "")"
+                              aria-current="@(currentController == "Admin" && currentAction == "Dashboard" ? "page" : null)"
                        asp-controller="Admin" asp-action="Dashboard">
                         <i class="bi bi-speedometer2 me-2"></i> Dashboard
                     </a>
@@ -83,37 +84,69 @@
                 @if (roleId == 1)
                 {
                     <li class="nav-item mb-1">
-                        <a class="nav-link text-white @(currentAction == "Employees" ? "active-menu" : "")"
+                                <a class="nav-link text-white @(currentController == "Admin" && (currentAction == "Employees" || currentAction == "EditEmployee") ? "active-menu" : "")"
+                                    aria-current="@(currentController == "Admin" && (currentAction == "Employees" || currentAction == "EditEmployee") ? "page" : null)"
                            asp-controller="Admin" asp-action="Employees">
                             <i class="bi bi-people me-2"></i> Employees
                         </a>
                     </li>
 
                     <li class="nav-item mb-1">
-                        <a class="nav-link text-white @(currentAction == "AssetCategories" ? "active-menu" : "")"
+                                <a class="nav-link text-white @(currentController == "Admin" && currentAction?.Contains("AssetCategory") == true ? "active-menu" : "")"
+                                    aria-current="@(currentController == "Admin" && currentAction?.Contains("AssetCategory") == true ? "page" : null)"
                            asp-controller="Admin" asp-action="AssetCategories">
                             <i class="bi bi-box-seam me-2"></i> Asset Category
                         </a>
                     </li>
 
                     <li class="nav-item mb-1">
-                        <a class="nav-link text-white @(currentAction == "Assets" ? "active-menu" : "")"
+                                <a class="nav-link text-white @(currentController == "Admin" && (currentAction?.Contains("Asset") == true && currentAction?.Contains("AssetCategory") != true) ? "active-menu" : "")"
+                                    aria-current="@(currentController == "Admin" && (currentAction?.Contains("Asset") == true && currentAction?.Contains("AssetCategory") != true) ? "page" : null)"
                            asp-controller="Admin" asp-action="Assets">
                             <i class="bi bi-box-seam me-2"></i> Assets
                         </a>
                     </li>
 
                     <li class="nav-item mb-1">
-                        <a class="nav-link text-white @(currentAction == "LeaveManagement" ? "active-menu" : "")"
+                                <a class="nav-link text-white @(currentController == "Admin" && (currentAction?.Contains("Leave") == true && currentAction?.Contains("Policy") != true && currentAction != "MyLeaves") ? "active-menu" : "")"
+                                    aria-current="@(currentController == "Admin" && (currentAction?.Contains("Leave") == true && currentAction?.Contains("Policy") != true && currentAction != "MyLeaves") ? "page" : null)"
                            asp-controller="Admin" asp-action="LeaveManagement">
                             <i class="bi bi-calendar-check me-2"></i> Leave Management
                         </a>
                     </li>
 
                     <li class="nav-item mb-1">
-                        <a class="nav-link text-white @(currentAction == "Roles" ? "active-menu" : "")"
+                                <a class="nav-link text-white @(currentController == "Admin" && currentAction?.Contains("LeavePolicy") == true ? "active-menu" : "")"
+                                    aria-current="@(currentController == "Admin" && currentAction?.Contains("LeavePolicy") == true ? "page" : null)"
+                           asp-controller="Admin" asp-action="LeavePolicy">
+                            <i class="bi bi-sliders me-2"></i> Annual Leave Policy
+                        </a>
+                    </li>
+
+                    <li class="nav-item mb-1">
+                                <a class="nav-link text-white @(currentController == "Admin" && currentAction?.Contains("Role") == true ? "active-menu" : "")"
+                                    aria-current="@(currentController == "Admin" && currentAction?.Contains("Role") == true ? "page" : null)"
                            asp-controller="Admin" asp-action="Roles">
                             <i class="bi bi-person-badge me-2"></i> Roles
+                        </a>
+                    </li>
+                }
+
+                @if (roleId == 3)
+                {
+                    <li class="nav-item mb-1">
+                                <a class="nav-link text-white @(currentController == "Admin" && currentAction?.Contains("Leave") == true && currentAction?.Contains("Policy") != true && currentAction != "MyLeaves" ? "active-menu" : "")"
+                                    aria-current="@(currentController == "Admin" && currentAction?.Contains("Leave") == true && currentAction?.Contains("Policy") != true && currentAction != "MyLeaves" ? "page" : null)"
+                           asp-controller="Admin" asp-action="LeaveManagement">
+                            <i class="bi bi-calendar-check me-2"></i> Leave Management
+                        </a>
+                    </li>
+
+                    <li class="nav-item mb-1">
+                                <a class="nav-link text-white @(currentController == "Admin" && currentAction?.Contains("LeavePolicy") == true ? "active-menu" : "")"
+                                    aria-current="@(currentController == "Admin" && currentAction?.Contains("LeavePolicy") == true ? "page" : null)"
+                           asp-controller="Admin" asp-action="LeavePolicy">
+                            <i class="bi bi-sliders me-2"></i> Annual Leave Policy
                         </a>
                     </li>
                 }
@@ -122,14 +155,16 @@
                 @if (roleId != 1)
                 {
                     <li class="nav-item mb-1">
-                        <a class="nav-link text-white @(currentAction == "Profile" ? "active-menu" : "")"
+                                <a class="nav-link text-white @(currentController == "Employee" && currentAction?.Contains("Profile") == true ? "active-menu" : "")"
+                                    aria-current="@(currentController == "Employee" && currentAction?.Contains("Profile") == true ? "page" : null)"
                            asp-controller="Employee" asp-action="Profile">
                             <i class="bi bi-person-circle me-2"></i> My Profile
                         </a>
                     </li>
 
                     <li class="nav-item mb-1">
-                        <a class="nav-link text-white @(currentAction == "Leave" ? "active-menu" : "")"
+                                <a class="nav-link text-white @(currentController == "Employee" && currentAction?.Contains("Leave") == true ? "active-menu" : "")"
+                                    aria-current="@(currentController == "Employee" && currentAction?.Contains("Leave") == true ? "page" : null)"
                            asp-controller="Employee" asp-action="Leave">
                             <i class="bi bi-calendar-check me-2"></i> My Leaves
                         </a>
@@ -138,7 +173,8 @@
 
                 <!-- Holidays -->
                 <li class="nav-item mb-3">
-                    <a class="nav-link text-white @(currentAction == "Holidays" ? "active-menu" : "")"
+                          <a class="nav-link text-white @(currentController == "Admin" && currentAction?.Contains("Holiday") == true ? "active-menu" : "")"
+                              aria-current="@(currentController == "Admin" && currentAction?.Contains("Holiday") == true ? "page" : null)"
                        asp-controller="Admin" asp-action="Holidays">
                         <i class="bi bi-calendar-event me-2"></i> Holidays
                     </a>
@@ -191,7 +227,7 @@
                 sidebarOverlay.classList.add('active');
                 document.body.style.overflow = 'hidden';
                 sidebarToggle.innerHTML = '<i class="bi bi-x-lg"></i>';
-                sidebarToggle.classList.add('shifted');
+                sidebarToggle.setAttribute('aria-expanded', 'true');
             }
 
             // Function to close sidebar
@@ -200,15 +236,46 @@
                 sidebarOverlay.classList.remove('active');
                 document.body.style.overflow = '';
                 sidebarToggle.innerHTML = '<i class="bi bi-list"></i>';
-                sidebarToggle.classList.remove('shifted');
+                sidebarToggle.setAttribute('aria-expanded', 'false');
             }
 
             // Toggle sidebar
             function toggleSidebar() {
-                if (sidebar.classList.contains('active')) {
-                    closeSidebar();
+                if (window.innerWidth <= 1024) {
+                    if (sidebar.classList.contains('active')) {
+                        closeSidebar();
+                    } else {
+                        openSidebar();
+                    }
                 } else {
-                    openSidebar();
+                    const isCollapsed = sidebar.classList.toggle('collapsed');
+                    mainContent.classList.toggle('expanded', isCollapsed);
+                    sidebarToggle.classList.toggle('sidebar-collapsed', isCollapsed);
+                    sidebarToggle.innerHTML = isCollapsed
+                        ? '<i class="bi bi-list"></i>'
+                        : '<i class="bi bi-x-lg"></i>';
+                    sidebarToggle.setAttribute('aria-expanded', String(!isCollapsed));
+                }
+            }
+
+            function updateSidebarForViewport() {
+                if (window.innerWidth > 1024) {
+                    sidebar.classList.remove('active');
+                    sidebarOverlay.classList.remove('active');
+                    document.body.style.overflow = '';
+                    sidebarToggle.innerHTML = sidebar.classList.contains('collapsed')
+                        ? '<i class="bi bi-list"></i>'
+                        : '<i class="bi bi-x-lg"></i>';
+                    sidebarToggle.setAttribute('aria-expanded', String(!sidebar.classList.contains('collapsed')));
+                    sidebarToggle.classList.toggle('sidebar-collapsed', sidebar.classList.contains('collapsed'));
+                } else {
+                    sidebar.classList.remove('collapsed', 'active');
+                    mainContent.classList.remove('expanded');
+                    sidebarToggle.classList.remove('sidebar-collapsed');
+                    sidebarOverlay.classList.remove('active');
+                    document.body.style.overflow = '';
+                    sidebarToggle.innerHTML = '<i class="bi bi-list"></i>';
+                    sidebarToggle.setAttribute('aria-expanded', 'false');
                 }
             }
 
@@ -238,41 +305,11 @@
             window.addEventListener('resize', function() {
                 clearTimeout(resizeTimer);
                 resizeTimer = setTimeout(function() {
-                    if (window.innerWidth > 1024) {
-                        closeSidebar();
-                        sidebar.classList.remove('active');
-                        document.body.style.overflow = '';
-                        sidebarToggle.style.display = 'none';
-                    } else {
-                        sidebarToggle.style.display = 'flex';
-                    }
+                    updateSidebarForViewport();
                 }, 250);
             });
 
-            // Initial check on load - FORCE DISPLAY on all screens
-            setTimeout(function() {
-                // Always show the toggle button on all screens
-                sidebarToggle.style.display = 'flex';
-
-                // On desktop (larger than 1024px), sidebar is visible, toggle shows menu icon
-                if (window.innerWidth > 1024) {
-                    sidebar.classList.remove('active');
-                    sidebarOverlay.classList.remove('active');
-                    document.body.style.overflow = '';
-                    sidebarToggle.innerHTML = '<i class="bi bi-list"></i>';
-                    sidebarToggle.classList.remove('shifted');
-                    // Keep toggle visible on desktop too
-                    sidebarToggle.style.display = 'flex';
-                } else {
-                    // On mobile, sidebar is hidden initially
-                    sidebar.classList.remove('active');
-                    sidebarOverlay.classList.remove('active');
-                    document.body.style.overflow = '';
-                    sidebarToggle.innerHTML = '<i class="bi bi-list"></i>';
-                    sidebarToggle.classList.remove('shifted');
-                    sidebarToggle.style.display = 'flex';
-                }
-            }, 100);
+            updateSidebarForViewport();
 
             // ==========================================
             // TOASTR NOTIFICATIONS

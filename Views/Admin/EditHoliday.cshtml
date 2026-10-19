@@ -6,7 +6,7 @@
 }
 
 <div class="page-accent mb-3">
-    <h3>+Edit</h3>
+    <h3><i class="bi bi-pencil-square me-2" aria-hidden="true"></i>Edit Holiday</h3>
 </div>
 
 <div class="card shadow-sm p-4">
@@ -20,13 +20,13 @@
         <input type="hidden" asp-for="Id" />
 
         <div class="mb-3">
-            <label class="form-label">Holiday Name</label>
+            <label asp-for="Name" class="form-label">Holiday Name</label>
             <input asp-for="Name" class="form-control" />
             <span asp-validation-for="Name" class="text-danger"></span>
         </div>
 
         <div class="mb-3">
-            <label class="form-label">Holiday Date</label>
+            <label asp-for="HolidayDate" class="form-label">Holiday Date</label>
             <input asp-for="HolidayDate"
                    type="date"
                    class="form-control"
@@ -35,7 +35,7 @@
         </div>
 
         <div class="mb-3">
-            <label class="form-label">Type</label>
+            <label asp-for="Type" class="form-label">Type</label>
             <select asp-for="Type" class="form-select">
                 <option value="">Select Type</option>
                 <option>National</option>
@@ -47,7 +47,7 @@
 
         <div class="form-check mb-3">
             <input asp-for="IsHalfDay" class="form-check-input" />
-            <label class="form-check-label">
+            <label asp-for="IsHalfDay" class="form-check-label">
                 Half Day Holiday
             </label>
         </div>

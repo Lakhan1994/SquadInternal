@@ -36,6 +36,10 @@ namespace SquadInternal.Models
         [StringLength(30)]
         public string LeaveType { get; set; } = "Casual";
 
+        [Required]
+        [StringLength(20)]
+        public string Duration { get; set; } = "Full Day";
+
         [StringLength(500)]
         public string? Reason { get; set; }
 
@@ -53,6 +57,17 @@ namespace SquadInternal.Models
 
         [ForeignKey(nameof(ApprovedByUserId))]
         public User? ApprovedByUser { get; set; }
+
+        public DateTime? DecisionOn { get; set; }
+
+        [StringLength(500)]
+        public string? RejectionReason { get; set; }
+
+        public int? CancelledByUserId { get; set; }
+        public DateTime? CancelledOn { get; set; }
+
+        [StringLength(500)]
+        public string? CancellationReason { get; set; }
 
         // ==========================
         // CUSTOM VALIDATION
