@@ -202,9 +202,6 @@ namespace SquadInternal.Controllers
             if (model.ToDate < model.FromDate)
                 return Json(new { success = false, message = "To Date cannot be earlier than From Date." });
 
-            if (model.FromDate.Date < DateTime.Today)
-                return Json(new { success = false, message = "Leave cannot be applied for past dates." });
-
             var allowedLeaveTypes = new[]
             {
                 "Sick Leave", "Casual Leave", "Earned Leave", "Privilege Leave",

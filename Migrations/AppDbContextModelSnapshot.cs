@@ -95,7 +95,7 @@ namespace SquadInternal.Migrations
                     b.HasIndex("EffectiveFrom")
                         .IsUnique();
 
-                    b.ToTable("AnnualLeavePolicies");
+                    b.ToTable("AnnualLeavePolicies", (string)null);
 
                     b.HasData(
                         new
@@ -149,7 +149,7 @@ namespace SquadInternal.Migrations
 
                     b.HasIndex("AnnualLeavePolicyId", "ChangedOn");
 
-                    b.ToTable("AnnualLeavePolicyAudits");
+                    b.ToTable("AnnualLeavePolicyAudits", (string)null);
                 });
 
             modelBuilder.Entity("SquadInternal.Models.Asset", b =>
@@ -246,7 +246,7 @@ namespace SquadInternal.Migrations
 
                     b.HasIndex("CurrentEmployeeId");
 
-                    b.ToTable("Assets");
+                    b.ToTable("Assets", (string)null);
                 });
 
             modelBuilder.Entity("SquadInternal.Models.AssetAssignment", b =>
@@ -305,7 +305,7 @@ namespace SquadInternal.Migrations
 
                     b.HasIndex("EmployeeId");
 
-                    b.ToTable("AssetAssignments");
+                    b.ToTable("AssetAssignments", (string)null);
                 });
 
             modelBuilder.Entity("SquadInternal.Models.AssetCategory", b =>
@@ -337,7 +337,7 @@ namespace SquadInternal.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("AssetCategories");
+                    b.ToTable("AssetCategories", (string)null);
                 });
 
             modelBuilder.Entity("SquadInternal.Models.AssetHistory", b =>
@@ -374,7 +374,7 @@ namespace SquadInternal.Migrations
 
                     b.HasIndex("AssetId");
 
-                    b.ToTable("AssetHistories");
+                    b.ToTable("AssetHistories", (string)null);
                 });
 
             modelBuilder.Entity("SquadInternal.Models.Employee", b =>
@@ -450,7 +450,7 @@ namespace SquadInternal.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Employees");
+                    b.ToTable("Employees", (string)null);
                 });
 
             modelBuilder.Entity("SquadInternal.Models.EmployeeDocument", b =>
@@ -490,7 +490,7 @@ namespace SquadInternal.Migrations
 
                     b.HasIndex("EmployeeId");
 
-                    b.ToTable("EmployeeDocuments");
+                    b.ToTable("EmployeeDocuments", (string)null);
                 });
 
             modelBuilder.Entity("SquadInternal.Models.EmployeeEducation", b =>
@@ -536,7 +536,7 @@ namespace SquadInternal.Migrations
 
                     b.HasIndex("EmployeeId");
 
-                    b.ToTable("EmployeeEducations");
+                    b.ToTable("EmployeeEducations", (string)null);
                 });
 
             modelBuilder.Entity("SquadInternal.Models.EmployeeLeave", b =>
@@ -604,7 +604,7 @@ namespace SquadInternal.Migrations
 
                     b.HasIndex("EmployeeId");
 
-                    b.ToTable("EmployeeLeaves");
+                    b.ToTable("EmployeeLeaves", (string)null);
                 });
 
             modelBuilder.Entity("SquadInternal.Models.EmployeeLeaveBalance", b =>
@@ -660,7 +660,7 @@ namespace SquadInternal.Migrations
                     b.HasIndex("EmployeeId", "LeaveYear", "LeaveType")
                         .IsUnique();
 
-                    b.ToTable("EmployeeLeaveBalances");
+                    b.ToTable("EmployeeLeaveBalances", (string)null);
                 });
 
             modelBuilder.Entity("SquadInternal.Models.LeaveBalanceTransaction", b =>
@@ -720,7 +720,7 @@ namespace SquadInternal.Migrations
 
                     b.HasIndex("EmployeeId", "LeaveYear", "LeaveType");
 
-                    b.ToTable("LeaveBalanceTransactions");
+                    b.ToTable("LeaveBalanceTransactions", (string)null);
                 });
 
             modelBuilder.Entity("SquadInternal.Models.LeaveRolloverExecution", b =>
@@ -757,7 +757,7 @@ namespace SquadInternal.Migrations
                     b.HasIndex("LeaveYear")
                         .IsUnique();
 
-                    b.ToTable("LeaveRolloverExecutions");
+                    b.ToTable("LeaveRolloverExecutions", (string)null);
                 });
 
             modelBuilder.Entity("SquadInternal.Models.Role", b =>
@@ -778,7 +778,7 @@ namespace SquadInternal.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Roles");
+                    b.ToTable("Roles", (string)null);
 
                     b.HasData(
                         new
@@ -832,7 +832,7 @@ namespace SquadInternal.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("SquadHolidays");
+                    b.ToTable("SquadHolidays", (string)null);
                 });
 
             modelBuilder.Entity("SquadInternal.Models.User", b =>
@@ -879,7 +879,7 @@ namespace SquadInternal.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("SquadInternal.Models.AnnualLeavePolicyAudit", b =>

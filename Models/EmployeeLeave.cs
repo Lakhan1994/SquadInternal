@@ -81,12 +81,6 @@ namespace SquadInternal.Models
                     new[] { nameof(ToDate) });
             }
 
-            if (FromDate.Date < DateTime.Today)
-            {
-                yield return new ValidationResult(
-                    "Leave cannot be applied for past dates.",
-                    new[] { nameof(FromDate) });
-            }
         }
     }
 }
