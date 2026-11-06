@@ -24,7 +24,7 @@ namespace SquadInternal.Services
                     continue;
                 }
 
-                if (date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
+                if (date.DayOfWeek == DayOfWeek.Sunday)
                     continue;
 
                 total += duration == "Full Day" ? 1m : 0.5m;

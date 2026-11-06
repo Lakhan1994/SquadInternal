@@ -227,7 +227,7 @@
                             </small>
                         </div>
                         <small id="noWorkingDaysWarning" class="text-danger d-none" role="alert">
-                            Choose at least one weekday that is not a full-day holiday.
+                            Choose at least one working day that is not a full-day holiday.
                         </small>
                     </div>
 
@@ -308,7 +308,7 @@
                 const weekday = cur.getDay();
                 if (Object.hasOwn(holidayCalendar, key)) {
                     if (holidayCalendar[key]) days += 0.5;
-                } else if (weekday !== 0 && weekday !== 6) {
+                } else if (weekday !== 0) {
                     days += 1;
                 }
                 cur.setDate(cur.getDate() + 1);
